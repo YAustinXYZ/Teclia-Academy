@@ -6,7 +6,14 @@ import bcryptjs from 'bcryptjs';
 import { normalizeLegacyUsers } from '../utils/dbUsers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, 'teclia.db');
+const DB_PATH = process.env.DATABASE_PATH
+  || (process.env.DATABASE_DIR
+    ? path.join(process.env.DATABASE_DIR, 'teclia.db')
+    : process.env.RENDER_DATA_DIR
+      ? path.join(process.env.RENDER_DATA_DIR, 'teclia.db')
+      : path.join(__dirname, 'teclia.db'));
+
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const ADMIN_EMAIL = 'austinrmz2007@gmail.com';
 const ADMIN_NAME = 'Austin';

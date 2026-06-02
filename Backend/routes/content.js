@@ -1,17 +1,14 @@
 import express from 'express';
 import path from 'path';
 import multer from 'multer';
-import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { getContent, getContentById, uploadContent, deleteContent, getFreeContent } from '../controllers/contentController.js';
 import { verifyToken, adminOnly } from '../middleware/auth.js';
+import { getUploadsPath } from '../config/uploads.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const uploadsDir = path.join(__dirname, '..', 'uploads');
-import fs from 'fs';
+const uploadsDir = getUploadsPath();
 if (!fs.existsSync(uploadsDir)) {
-	fs.mkdirSync(uploadsDir, { recursive: true });
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({

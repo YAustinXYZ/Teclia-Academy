@@ -7,6 +7,7 @@ import { getDb, saveDatabase } from '../db/init.js';
 import { getUploadsPath } from '../config/uploads.js';
 import { validatePassword } from '../utils/password.js';
 import { listNonAdminUsers, mapUserRows, normalizeLegacyUsers, ensureUserColumn } from '../utils/dbUsers.js';
+import { uploadToStorage, getSignedStorageUrl, resolveStoragePath, deleteFromStorage } from '../lib/supabaseClient.js';
 
 const normalizeEmail = (email) => email.trim().toLowerCase();
 
@@ -18,6 +19,31 @@ const formatUser = (user) => ({
   plan_tier: user.plan_tier || null,
   avatar_url: user.avatar_url || null,
 });
+
+const removeFileFromStorageOrLocal = async (fileUrl) => {
+  if (!fileUrl) return;
+
+  const storagePath = resolveStoragePath(fileUrl);
+  if (storagePath) {
+    try {
+      await deleteFromStorage(storagePath);
+    } catch (_e) {
+      // ignore cleanup errors
+    }
+    return;
+  }
+
+  if (fileUrl.startsWith('/uploads/')) {
+    const oldPath = path.join(getUploadsPath(), fileUrl.replace(/^\/uploads\//, ''));
+    if (fs.existsSync(oldPath)) {
+      try {
+        fs.unlinkSync(oldPath);
+      } catch (_e) {
+        // ignore cleanup errors
+      }
+    }
+  }
+};
 
 const generateToken = (userId, role) => {
   return jwt.sign({ id: userId, role }, process.env.JWT_SECRET, {
@@ -133,6 +159,13 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (user.avatar_url) {
+      const avatarPath = resolveStoragePath(user.avatar_url);
+      if (avatarPath) {
+        user.avatar_url = await getSignedStorageUrl(avatarPath);
+      }
+    }
+
     const token = generateToken(user.id, user.role);
     res.json({
       message: 'Login successful',
@@ -156,6 +189,13 @@ export const getMe = async (req, res) => {
     const vals = result[0].values[0];
     const user = {};
     cols.forEach((c, i) => (user[c] = vals[i]));
+
+    if (user.avatar_url) {
+      const avatarPath = resolveStoragePath(user.avatar_url);
+      if (avatarPath) {
+        user.avatar_url = await getSignedStorageUrl(avatarPath);
+      }
+    }
 
     res.json({ user });
   } catch (err) {
@@ -189,15 +229,16 @@ export const updateProfile = async (req, res) => {
       params.push(name);
     }
     if (avatarFile) {
-      if (currentUser.avatar_url) {
-        const oldPath = path.join(getUploadsPath(), currentUser.avatar_url.replace(/^\/uploads\//, ''));
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
-      }
-      const publicPath = `/uploads/avatars/${avatarFile.filename}`;
+      await removeFileFromStorageOrLocal(currentUser.avatar_url);
+
+      const storagePath = `avatars/${req.user.id}-${Date.now()}-${avatarFile.filename}`;
+      const fileBuffer = fs.readFileSync(avatarFile.path);
+      await uploadToStorage(storagePath, fileBuffer, avatarFile.mimetype);
+
       updates.push('avatar_url = ?');
-      params.push(publicPath);
+      params.push(storagePath);
+
+      fs.unlinkSync(avatarFile.path);
     } else if (avatarUrl) {
       updates.push('avatar_url = ?');
       params.push(avatarUrl);
@@ -212,6 +253,13 @@ export const updateProfile = async (req, res) => {
     const updatedVals = updatedResult[0].values[0];
     const user = {};
     updatedCols.forEach((c, i) => (user[c] = updatedVals[i]));
+
+    if (user.avatar_url) {
+      const avatarPath = resolveStoragePath(user.avatar_url);
+      if (avatarPath) {
+        user.avatar_url = await getSignedStorageUrl(avatarPath);
+      }
+    }
 
     res.json({ message: 'Profile updated successfully', user: formatUser(user) });
   } catch (err) {
@@ -436,11 +484,15 @@ export const deleteStudent = async (req, res) => {
       return res.status(400).json({ error: 'No se puede eliminar una cuenta de administrador' });
     }
 
-    if (avatarUrl) {
-      const oldPath = path.join(getUploadsPath(), avatarUrl.replace(/^\/uploads\//, ''));
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
+    await removeFileFromStorageOrLocal(avatarUrl);
+
+    const contentResults = await db.exec('SELECT url FROM content WHERE uploaded_by = ?', [id]);
+    if (contentResults.length > 0 && contentResults[0].values.length > 0) {
+      for (const row of contentResults[0].values) {
+        const fileUrl = row[0];
+        await removeFileFromStorageOrLocal(fileUrl);
       }
+      await db.run('DELETE FROM content WHERE uploaded_by = ?', [id]);
     }
 
     await db.run('DELETE FROM users WHERE id = ?', [id]);

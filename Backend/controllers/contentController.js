@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 import { getDb, saveDatabase } from '../db/init.js';
 import { canAccessPlan, PLAN_TIERS } from '../utils/plans.js';
+import { uploadToStorage, getSignedStorageUrl, deleteFromStorage, resolveStoragePath } from '../lib/supabaseClient.js';
 
 const parseOptionalUser = (req) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -32,6 +35,20 @@ const mapContentRows = (result) => {
   });
 };
 
+const resolveContentRows = async (content) => {
+  return Promise.all(
+    content.map(async (item) => {
+      if (item.url) {
+        const storagePath = resolveStoragePath(item.url);
+        if (storagePath) {
+          item.url = await getSignedStorageUrl(storagePath);
+        }
+      }
+      return item;
+    })
+  );
+};
+
 const filterContentForUser = (content, access) => {
   if (!access) {
     return content.filter((item) => (item.plan_tier || 'free') === 'free');
@@ -52,7 +69,8 @@ export const getContent = async (req, res) => {
     const allContent = mapContentRows(result);
     const tokenUser = parseOptionalUser(req);
     const access = tokenUser ? await getUserAccess(tokenUser.id) : null;
-    const content = filterContentForUser(allContent, access);
+    let content = filterContentForUser(allContent, access);
+    content = await resolveContentRows(content);
 
     res.json({ content });
   } catch (err) {
@@ -76,7 +94,7 @@ export const getContentById = async (req, res) => {
       return res.status(404).json({ error: 'Content not found' });
     }
 
-    const content = mapContentRows(result)[0];
+    let content = mapContentRows(result)[0];
     const tokenUser = parseOptionalUser(req);
     const access = tokenUser ? await getUserAccess(tokenUser.id) : null;
 
@@ -84,7 +102,9 @@ export const getContentById = async (req, res) => {
       return res.status(403).json({ error: 'No tienes acceso a este contenido con tu plan actual' });
     }
 
-    res.json({ content });
+    content = await resolveContentRows([content]);
+
+    res.json({ content: content[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -95,14 +115,20 @@ export const uploadContent = async (req, res) => {
     const { title, description, type, url, is_free, plan_tier } = req.body;
 
     let finalUrl = url;
+    let storagePath = null;
     if (req.file) {
-      const host = req.get('host');
-      const protocol = req.protocol;
-      finalUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+      storagePath = `content/${req.file.filename}`;
     }
 
-    if (!title || !type || !finalUrl) {
+    if (!title || !type || (!finalUrl && !storagePath)) {
       return res.status(400).json({ error: 'Title, type and url/file are required' });
+    }
+
+    if (req.file && storagePath) {
+      const fileBuffer = fs.readFileSync(req.file.path);
+      await uploadToStorage(storagePath, fileBuffer, req.file.mimetype);
+      finalUrl = storagePath;
+      fs.unlinkSync(req.file.path);
     }
 
     const selectedPlan = plan_tier || (is_free === '1' || is_free === 'true' || is_free === 'on' ? 'free' : 'basico');
@@ -140,6 +166,10 @@ export const uploadContent = async (req, res) => {
       created_at: new Date().toISOString(),
     };
 
+    if (storagePath) {
+      content.url = await getSignedStorageUrl(storagePath);
+    }
+
     res.json({ message: 'Content uploaded', content });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -151,9 +181,19 @@ export const deleteContent = async (req, res) => {
     const { id } = req.params;
     const db = getDb();
 
-    const found = await db.exec('SELECT id FROM content WHERE id = ?', [id]);
+    const found = await db.exec('SELECT url FROM content WHERE id = ?', [id]);
     if (found.length === 0 || found[0].values.length === 0) {
       return res.status(404).json({ error: 'Content not found' });
+    }
+
+    const fileUrl = found[0].values[0][0];
+    const bucketPath = fileUrl ? resolveStoragePath(fileUrl) : null;
+    if (bucketPath) {
+      try {
+        await deleteFromStorage(bucketPath);
+      } catch (_e) {
+        // ignore cleanup error
+      }
     }
 
     await db.run('DELETE FROM content WHERE id = ?', [id]);
@@ -176,7 +216,9 @@ export const getFreeContent = async (req, res) => {
       ORDER BY c.created_at DESC
     `);
 
-    res.json({ content: mapContentRows(result) });
+    let content = mapContentRows(result);
+    content = await resolveContentRows(content);
+    res.json({ content });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

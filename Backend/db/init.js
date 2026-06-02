@@ -180,8 +180,10 @@ export const initDb = async () => {
     try {
       db = createPostgresDb(process.env.DATABASE_URL);
       isPostgres = true;
+      await db.query('SELECT 1');
+      console.log('✓ Postgres connection test succeeded');
       await createPostgresSchema();
-      console.log('✓ Postgres connected and schema created');
+      console.log('✓ Postgres schema created');
     } catch (err) {
       console.error('❌ Failed to connect to Postgres:', err.message);
       throw err;

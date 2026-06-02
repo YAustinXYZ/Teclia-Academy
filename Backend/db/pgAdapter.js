@@ -25,7 +25,13 @@ const mapColumns = async (db, table) => {
 };
 
 export const createPostgresDb = (connectionString) => {
-  const pool = new Pool({ connectionString });
+  const pool = new Pool({
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+    connectionTimeoutMillis: 10000,
+  });
 
   const db = {
     isPostgres: true,

@@ -12,9 +12,9 @@ const parseOptionalUser = (req) => {
   }
 };
 
-const getUserAccess = (userId) => {
+const getUserAccess = async (userId) => {
   const db = getDb();
-  const result = db.exec('SELECT role, plan_tier FROM users WHERE id = ?', [userId]);
+  const result = await db.exec('SELECT role, plan_tier FROM users WHERE id = ?', [userId]);
   if (result.length === 0 || result[0].values.length === 0) return null;
   return { role: result[0].values[0][0], plan_tier: result[0].values[0][1] };
 };
@@ -40,10 +40,10 @@ const filterContentForUser = (content, access) => {
   return content.filter((item) => canAccessPlan(access.plan_tier, item.plan_tier || 'free'));
 };
 
-export const getContent = (req, res) => {
+export const getContent = async (req, res) => {
   try {
     const db = getDb();
-    const result = db.exec(`
+    const result = await db.exec(`
       SELECT c.*, u.name as uploaded_by_name FROM content c
       LEFT JOIN users u ON c.uploaded_by = u.id
       ORDER BY c.created_at DESC
@@ -51,7 +51,7 @@ export const getContent = (req, res) => {
 
     const allContent = mapContentRows(result);
     const tokenUser = parseOptionalUser(req);
-    const access = tokenUser ? getUserAccess(tokenUser.id) : null;
+    const access = tokenUser ? await getUserAccess(tokenUser.id) : null;
     const content = filterContentForUser(allContent, access);
 
     res.json({ content });
@@ -60,12 +60,12 @@ export const getContent = (req, res) => {
   }
 };
 
-export const getContentById = (req, res) => {
+export const getContentById = async (req, res) => {
   try {
     const { id } = req.params;
     const db = getDb();
 
-    const result = db.exec(
+    const result = await db.exec(
       `SELECT c.*, u.name as uploaded_by_name FROM content c
        LEFT JOIN users u ON c.uploaded_by = u.id
        WHERE c.id = ?`,
@@ -78,7 +78,7 @@ export const getContentById = (req, res) => {
 
     const content = mapContentRows(result)[0];
     const tokenUser = parseOptionalUser(req);
-    const access = tokenUser ? getUserAccess(tokenUser.id) : null;
+    const access = tokenUser ? await getUserAccess(tokenUser.id) : null;
 
     if (!filterContentForUser([content], access).length) {
       return res.status(403).json({ error: 'No tienes acceso a este contenido con tu plan actual' });
@@ -90,7 +90,7 @@ export const getContentById = (req, res) => {
   }
 };
 
-export const uploadContent = (req, res) => {
+export const uploadContent = async (req, res) => {
   try {
     const { title, description, type, url, is_free, plan_tier } = req.body;
 
@@ -119,15 +119,14 @@ export const uploadContent = (req, res) => {
 
     const freeFlag = selectedPlan === 'free' ? 1 : 0;
 
-    db.run(
-      'INSERT INTO content (title, description, type, url, is_free, plan_tier, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    const insertResult = await db.exec(
+      'INSERT INTO content (title, description, type, url, is_free, plan_tier, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id',
       [title, description || '', type, finalUrl, freeFlag, selectedPlan, uploaderId]
     );
 
     saveDatabase();
 
-    const resId = db.exec('SELECT last_insert_rowid() as id');
-    const newId = resId[0].values[0][0];
+    const newId = insertResult[0].values[0][0];
 
     const content = {
       id: newId,
@@ -147,17 +146,17 @@ export const uploadContent = (req, res) => {
   }
 };
 
-export const deleteContent = (req, res) => {
+export const deleteContent = async (req, res) => {
   try {
     const { id } = req.params;
     const db = getDb();
 
-    const found = db.exec('SELECT id FROM content WHERE id = ?', [id]);
+    const found = await db.exec('SELECT id FROM content WHERE id = ?', [id]);
     if (found.length === 0 || found[0].values.length === 0) {
       return res.status(404).json({ error: 'Content not found' });
     }
 
-    db.run('DELETE FROM content WHERE id = ?', [id]);
+    await db.run('DELETE FROM content WHERE id = ?', [id]);
     saveDatabase();
 
     res.json({ message: 'Content deleted' });
@@ -166,11 +165,11 @@ export const deleteContent = (req, res) => {
   }
 };
 
-export const getFreeContent = (req, res) => {
+export const getFreeContent = async (req, res) => {
   try {
     const db = getDb();
 
-    const result = db.exec(`
+    const result = await db.exec(`
       SELECT c.*, u.name as uploaded_by_name FROM content c
       LEFT JOIN users u ON c.uploaded_by = u.id
       WHERE c.plan_tier = 'free' OR c.is_free = 1

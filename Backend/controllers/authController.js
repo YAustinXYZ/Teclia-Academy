@@ -58,7 +58,7 @@ const sendResetPinEmail = async (email, pin) => {
   }
 };
 
-export const signup = (req, res) => {
+export const signup = async (req, res) => {
   try {
     const { email, password, name } = req.body;
 
@@ -74,22 +74,21 @@ export const signup = (req, res) => {
     const normalizedEmail = normalizeEmail(email);
     const db = getDb();
 
-    const existingUser = db.exec('SELECT id FROM users WHERE LOWER(email) = ?', [normalizedEmail]);
+    const existingUser = await db.exec('SELECT id FROM users WHERE LOWER(email) = ?', [normalizedEmail]);
     if (existingUser.length > 0 && existingUser[0].values.length > 0) {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
     const hashedPassword = bcryptjs.hashSync(password, 10);
 
-    db.run(
-      'INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)',
+    const insertResult = await db.exec(
+      'INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?) RETURNING id',
       [normalizedEmail, hashedPassword, name, 'student']
     );
 
     saveDatabase();
 
-    const result = db.exec('SELECT last_insert_rowid() as id');
-    const userId = result[0].values[0][0];
+    const userId = insertResult[0].values[0][0];
 
     const token = generateToken(userId, 'student');
     res.json({
@@ -102,7 +101,7 @@ export const signup = (req, res) => {
   }
 };
 
-export const login = (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -112,7 +111,7 @@ export const login = (req, res) => {
 
     const normalizedEmail = normalizeEmail(email);
     const db = getDb();
-    const result = db.exec(
+    const result = await db.exec(
       'SELECT id, email, name, password_hash, role, plan_tier, avatar_url FROM users WHERE LOWER(email) = ?',
       [normalizedEmail]
     );
@@ -145,10 +144,10 @@ export const login = (req, res) => {
   }
 };
 
-export const getMe = (req, res) => {
+export const getMe = async (req, res) => {
   try {
     const db = getDb();
-    const result = db.exec('SELECT id, email, name, role, plan_tier, avatar_url FROM users WHERE id = ?', [req.user.id]);
+    const result = await db.exec('SELECT id, email, name, role, plan_tier, avatar_url FROM users WHERE id = ?', [req.user.id]);
     if (result.length === 0 || result[0].values.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -164,7 +163,7 @@ export const getMe = (req, res) => {
   }
 };
 
-export const updateProfile = (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
     const { name, avatarUrl } = req.body;
     const avatarFile = req.file;
@@ -173,7 +172,7 @@ export const updateProfile = (req, res) => {
     }
 
     const db = getDb();
-    const result = db.exec('SELECT id, email, name, role, plan_tier, avatar_url FROM users WHERE id = ?', [req.user.id]);
+    const result = await db.exec('SELECT id, email, name, role, plan_tier, avatar_url FROM users WHERE id = ?', [req.user.id]);
     if (result.length === 0 || result[0].values.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -205,10 +204,10 @@ export const updateProfile = (req, res) => {
     }
     params.push(req.user.id);
 
-    db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params);
+    await db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params);
     saveDatabase();
 
-    const updatedResult = db.exec('SELECT id, email, name, role, plan_tier, avatar_url FROM users WHERE id = ?', [req.user.id]);
+    const updatedResult = await db.exec('SELECT id, email, name, role, plan_tier, avatar_url FROM users WHERE id = ?', [req.user.id]);
     const updatedCols = updatedResult[0].columns;
     const updatedVals = updatedResult[0].values[0];
     const user = {};
@@ -220,7 +219,7 @@ export const updateProfile = (req, res) => {
   }
 };
 
-export const changePassword = (req, res) => {
+export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
@@ -233,7 +232,7 @@ export const changePassword = (req, res) => {
     }
 
     const db = getDb();
-    const result = db.exec('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
+    const result = await db.exec('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
     if (result.length === 0 || result[0].values.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -244,7 +243,7 @@ export const changePassword = (req, res) => {
     }
 
     const hashedPassword = bcryptjs.hashSync(newPassword, 10);
-    db.run('UPDATE users SET password_hash = ? WHERE id = ?', [hashedPassword, req.user.id]);
+    await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [hashedPassword, req.user.id]);
     saveDatabase();
 
     res.json({ message: 'Contraseña actualizada correctamente' });
@@ -262,7 +261,7 @@ export const forgotPassword = async (req, res) => {
 
     const normalizedEmail = normalizeEmail(email);
     const db = getDb();
-    const result = db.exec('SELECT id, email FROM users WHERE LOWER(email) = ?', [normalizedEmail]);
+    const result = await db.exec('SELECT id, email FROM users WHERE LOWER(email) = ?', [normalizedEmail]);
     if (result.length === 0 || result[0].values.length === 0) {
       return res.status(404).json({
         error: 'Este correo no está registrado. Debes usar el mismo correo con el que iniciaste sesión.',
@@ -285,7 +284,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-export const resetPassword = (req, res) => {
+export const resetPassword = async (req, res) => {
   try {
     const { email, pin, newPassword } = req.body;
     if (!email || !pin || !newPassword) {
@@ -299,7 +298,7 @@ export const resetPassword = (req, res) => {
 
     const normalizedEmail = normalizeEmail(email);
     const db = getDb();
-    const result = db.exec(
+    const result = await db.exec(
       'SELECT reset_pin, reset_pin_expires_at FROM users WHERE LOWER(email) = ?',
       [normalizedEmail]
     );
@@ -318,7 +317,7 @@ export const resetPassword = (req, res) => {
     }
 
     const hashedPassword = bcryptjs.hashSync(newPassword, 10);
-    db.run(
+    await db.run(
       'UPDATE users SET password_hash = ?, reset_pin = NULL, reset_pin_expires_at = NULL WHERE LOWER(email) = ?',
       [hashedPassword, normalizedEmail]
     );
@@ -330,11 +329,11 @@ export const resetPassword = (req, res) => {
   }
 };
 
-export const logout = (req, res) => {
+export const logout = async (req, res) => {
   res.json({ message: 'Logout successful' });
 };
 
-export const verifyRecoveryEmail = (req, res) => {
+export const verifyRecoveryEmail = async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -343,7 +342,7 @@ export const verifyRecoveryEmail = (req, res) => {
 
     const normalizedEmail = normalizeEmail(email);
     const db = getDb();
-    const result = db.exec(
+    const result = await db.exec(
       'SELECT id, email, name FROM users WHERE LOWER(email) = ?',
       [normalizedEmail]
     );
@@ -361,10 +360,10 @@ export const verifyRecoveryEmail = (req, res) => {
   }
 };
 
-export const listStudents = (req, res) => {
+export const listStudents = async (req, res) => {
   try {
     const db = getDb();
-    const result = listNonAdminUsers(db);
+    const result = await listNonAdminUsers(db);
     const students = mapUserRows(result, formatUser);
     res.json({ students });
   } catch (err) {
@@ -372,7 +371,7 @@ export const listStudents = (req, res) => {
   }
 };
 
-export const updateStudentPlan = (req, res) => {
+export const updateStudentPlan = async (req, res) => {
   try {
     const { id } = req.params;
     const { plan_tier } = req.body;
@@ -385,10 +384,10 @@ export const updateStudentPlan = (req, res) => {
     const newRole = normalizedPlan ? 'premium' : 'student';
 
     const db = getDb();
-    normalizeLegacyUsers(db);
-    ensureUserColumn(db, 'plan_tier', 'plan_tier TEXT DEFAULT NULL');
+    await normalizeLegacyUsers(db);
+    await ensureUserColumn(db, 'plan_tier', 'plan_tier TEXT DEFAULT NULL');
 
-    const found = db.exec('SELECT id, role FROM users WHERE id = ?', [id]);
+    const found = await db.exec('SELECT id, role FROM users WHERE id = ?', [id]);
     if (found.length === 0 || found[0].values.length === 0) {
       return res.status(404).json({ error: 'Estudiante no encontrado' });
     }
@@ -397,10 +396,10 @@ export const updateStudentPlan = (req, res) => {
       return res.status(400).json({ error: 'No se puede modificar un administrador' });
     }
 
-    db.run('UPDATE users SET plan_tier = ?, role = ? WHERE id = ?', [normalizedPlan, newRole, id]);
+    await db.run('UPDATE users SET plan_tier = ?, role = ? WHERE id = ?', [normalizedPlan, newRole, id]);
     saveDatabase();
 
-    const updated = db.exec(
+    const updated = await db.exec(
       'SELECT id, name, email, role, plan_tier, avatar_url, created_at FROM users WHERE id = ?',
       [id]
     );
@@ -420,12 +419,12 @@ export const updateStudentPlan = (req, res) => {
   }
 };
 
-export const deleteStudent = (req, res) => {
+export const deleteStudent = async (req, res) => {
   try {
     const { id } = req.params;
     const db = getDb();
 
-    const found = db.exec('SELECT id, role, avatar_url FROM users WHERE id = ?', [id]);
+    const found = await db.exec('SELECT id, role, avatar_url FROM users WHERE id = ?', [id]);
     if (found.length === 0 || found[0].values.length === 0) {
       return res.status(404).json({ error: 'Estudiante no encontrado' });
     }
@@ -444,7 +443,7 @@ export const deleteStudent = (req, res) => {
       }
     }
 
-    db.run('DELETE FROM users WHERE id = ?', [id]);
+    await db.run('DELETE FROM users WHERE id = ?', [id]);
     saveDatabase();
 
     res.json({ message: 'Cuenta eliminada correctamente' });

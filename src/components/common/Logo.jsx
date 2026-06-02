@@ -1,4 +1,4 @@
-import logo from '../../assets/teclia_logo.svg';
+import logo from '../../assets/teclia1_logo1.svg';
 
 export const Logo = ({ size = 42, showTagline = true }) => (
   <div className="brand logo-brand">

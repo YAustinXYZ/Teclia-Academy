@@ -7,6 +7,11 @@
   line-height: 1.7;
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-strong: rgba(255, 255, 255, 0.1);
+  --surface-soft: rgba(255, 255, 255, 0.02);
+  --accent: #d7b761;
+  --shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -20,8 +25,128 @@ body {
 }
 
 body {
-  background: radial-gradient(circle at top, rgba(201, 168, 76, 0.12), transparent 20%),
-    #090909;
+  background: radial-gradient(circle at top, rgba(201, 168, 76, 0.18), transparent 18%),
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.06), transparent 8%),
+    radial-gradient(circle at 82% 10%, rgba(255, 255, 255, 0.04), transparent 12%),
+    #060606;
+  background-attachment: fixed;
+}
+
+/* Reveal / scroll animation utilities */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px) scale(0.998);
+  transition: opacity 560ms cubic-bezier(.2,.9,.2,1) var(--reveal-delay, 0ms),
+              transform 560ms cubic-bezier(.2,.9,.2,1) var(--reveal-delay, 0ms),
+              filter 560ms ease var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+  filter: blur(0.6px) saturate(0.98);
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .piano-key,
+  [data-parallax],
+  .hero h1,
+  .hero-panel,
+  .topbar {
+    transition: none !important;
+    animation: none !important;
+    will-change: auto !important;
+  }
+}
+
+.reveal.show {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* Parallax helpers: elements using data-parallax="0.12" */
+[data-parallax] {
+  transform: translateY(0);
+  transition: transform 0.6s cubic-bezier(.2,.9,.2,1);
+  will-change: transform;
+}
+
+/* Topbar subtle blur on scroll */
+.topbar {
+  transition: backdrop-filter 260ms ease, box-shadow 260ms ease, background 260ms ease;
+}
+.topbar.scrolled {
+  backdrop-filter: blur(6px) saturate(1.06);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.45);
+}
+
+/* section transitions */
+.section-active {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 36px 80px rgba(0,0,0,0.45);
+  transition: transform 420ms cubic-bezier(.2,.9,.2,1), box-shadow 420ms ease;
+}
+
+/* subtle tilt based on scroll velocity */
+:root {
+  --scroll-velocity: 0;
+}
+.section-surface {
+  transform-origin: center;
+  transition: transform 360ms cubic-bezier(.2,.9,.2,1);
+  will-change: transform;
+}
+.section-surface.section-active {
+  /* small parallax tilt proportional to velocity */
+  transform: translateY(-6px) rotateX(calc(var(--scroll-velocity) * 0.6deg));
+}
+
+/* Direction subtle motion */
+.scrolling-down .section-surface {
+  transform: translateY(-8px);
+}
+.scrolling-up .section-surface {
+  transform: translateY(4px);
+}
+
+/* Piano-specific visual effects */
+@keyframes keyPulse {
+  0% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0 rgba(213,182,98,0)); }
+  40% { transform: translateY(-6px) scale(1.02); filter: drop-shadow(0 18px 28px rgba(213,182,98,0.06)); }
+  100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0 rgba(213,182,98,0)); }
+}
+
+.piano-key.pulse {
+  animation: keyPulse 900ms cubic-bezier(.2,.9,.2,1) var(--key-delay, 0ms) both;
+}
+
+/* subtle glow when keyboard in view */
+.keyboard-shell.keyboard-inview .piano-key.white {
+  transition: box-shadow 420ms ease, transform 420ms ease;
+}
+.keyboard-shell.keyboard-inview .piano-key.active {
+  box-shadow: 0 26px 60px rgba(213,182,98,0.16), inset 0 -6px 18px rgba(0,0,0,0.12);
+  transform: translateY(-4px);
+}
+
+/* shimmer across keys on hover for micro-interaction */
+.piano-key.white:hover {
+  transform: translateY(-4px) scale(1.01);
+}
+
+/* small shimmer on hero headings */
+@keyframes shine {
+  0% { background-position: -120% 0; }
+  100% { background-position: 220% 0; }
+}
+.hero h1 {
+  background: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(215,183,97,0.95) 40%, rgba(255,255,255,0.98) 60%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-size: 220% 100%;
+}
+.hero h1.reveal.show {
+  animation: shine 2.2s linear 300ms both;
 }
 
 a {
@@ -40,6 +165,15 @@ button {
   animation: fadeInUp 0.75s ease both;
 }
 
+main {
+  scroll-snap-type: y proximity;
+}
+
+section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
 .topbar {
   display: flex;
   justify-content: center;
@@ -56,12 +190,13 @@ button {
 }
 
 .brand-logo {
-  width: 52px;
-  height: 52px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 0.45rem;
-  object-fit: cover;
+  width: 72px;
+  height: 72px;
+  border-radius: 0; /* remove rounded crop for logo */
+  background: transparent; /* keep logo crisp */
+  padding: 0; /* remove extra padding to let image occupy space */
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 .brand-text {
@@ -122,10 +257,11 @@ button {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  border-radius: 999px;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  /* removed heavy rounding to keep logo rectangular */
+  border-radius: 6px;
+  padding: 0.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   width: fit-content;
   margin-bottom: 1rem;
 }
@@ -135,17 +271,19 @@ button {
 }
 
 .hero-logo-marker .brand-logo {
-  width: 38px;
-  height: 38px;
+  width: 64px;
+  height: 64px;
 }
 
 .section-surface {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 2rem;
   padding: 2.25rem;
   margin-top: 2rem;
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+  transition: transform 260ms ease, border-color 260ms ease, background 260ms ease;
 }
 
 .hero {
@@ -214,8 +352,8 @@ h1 {
 }
 
 .button:hover {
-  transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 18px 40px rgba(201, 168, 76, 0.14);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(201, 168, 76, 0.18);
 }
 
 .button-primary {
@@ -235,12 +373,35 @@ h1 {
 }
 
 .hero-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 2rem;
   padding: 2rem;
   width: 100%;
   max-width: 420px;
+  box-shadow: var(--shadow);
+  transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
+}
+
+.hero-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(215, 183, 97, 0.18), transparent 32%);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.hero-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 34px 98px rgba(0, 0, 0, 0.4);
 }
 
 .hero-badge {
@@ -290,11 +451,23 @@ h1 {
 .feature-card,
 .studio-card,
 .pricing-card,
-.contact-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.contact-card,
+.plan-card {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1.8rem;
   padding: 1.7rem;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+  transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease, background 260ms ease;
+}
+
+.feature-card:hover,
+.studio-card:hover,
+.pricing-card:hover,
+.contact-card:hover,
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
 }
 
 .feature-card h3,
@@ -477,19 +650,42 @@ h1 {
   max-width: 900px;
   display: grid;
   gap: 1.2rem;
+  overflow-x: auto;
 }
 
 .keyboard-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
   justify-content: center;
+  align-items: center;
+}
+
+.keyboard-sustain-toggle {
+  min-width: 160px;
+}
+
+.keyboard-note {
+  margin: 0;
+  color: #babbc2;
+  font-size: 0.95rem;
+  text-align: center;
 }
 
 .keyboard {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-columns: repeat(24, minmax(0, 1fr));
   gap: 0.22rem;
   position: relative;
   justify-items: center;
+}
+
+.piano-key span small {
+  display: block;
+  font-size: 0.65rem;
+  color: inherit;
+  opacity: 0.7;
+  margin-top: 0.15rem;
 }
 
 .piano-key {
@@ -504,6 +700,7 @@ h1 {
   padding-bottom: 0.8rem;
   font-weight: 700;
   user-select: none;
+  will-change: transform;
 }
 
 .piano-key span {
@@ -2411,8 +2608,8 @@ h1 {
   }
 
   .navbar-brand .brand-logo {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
   }
 
   .navbar-avatar {

@@ -190,6 +190,10 @@ export const ProfilePage = () => {
                             src={avatarPreview}
                             alt="Avatar de perfil"
                             className="profile-avatar-image"
+                            loading="lazy"
+                            decoding="async"
+                            width={128}
+                            height={128}
                             onError={() => setAvatarPreview('')}
                           />
                         ) : (

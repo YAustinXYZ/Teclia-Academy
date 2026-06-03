@@ -111,7 +111,7 @@ export const AdminStudentsPage = () => {
                       <tr key={student.id}>
                         <td>
                           {avatarSrc ? (
-                            <img src={avatarSrc} alt={student.name} className="student-table-avatar" />
+                            <img src={avatarSrc} alt={student.name} className="student-table-avatar" loading="lazy" decoding="async" width={40} height={40} />
                           ) : (
                             <span className="student-table-avatar student-table-avatar-placeholder">
                               {student.name?.charAt(0)?.toUpperCase() || '?'}

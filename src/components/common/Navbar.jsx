@@ -74,7 +74,7 @@ export const Navbar = () => {
             <>
               <Link to="/profile" className="navbar-avatar-link navbar-avatar-desktop" title="Mi perfil" onClick={closeMobile}>
                 {avatarSrc ? (
-                  <img src={avatarSrc} alt="Foto de perfil" className="navbar-avatar" />
+                  <img src={avatarSrc} alt="Foto de perfil" className="navbar-avatar" loading="lazy" decoding="async" width={38} height={38} />
                 ) : (
                   <span className="navbar-avatar navbar-avatar-placeholder">
                     {user.name?.charAt(0)?.toUpperCase() || 'U'}

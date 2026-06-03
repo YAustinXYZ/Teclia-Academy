@@ -87,8 +87,11 @@ function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState({ cardNumber: '', expiry: '', cvc: '' });
   const [paymentStatus, setPaymentStatus] = useState(null);
+  const [sustainMode, setSustainMode] = useState(false);
+  const [sustainActive, setSustainActive] = useState(false);
   const audioContextRef = useRef(null);
   const audioStartedRef = useRef(false);
+  const sustainHoldRef = useRef(false);
 
   useEffect(() => {
     if (sessionStorage.getItem('tecliaVisitCounted')) return;
@@ -119,108 +122,54 @@ function LandingPage() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     const audioCtx = audioContextRef.current || new AudioContext();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    audioContextRef.current = audioCtx;
     const now = audioCtx.currentTime;
-    const osc1 = audioCtx.createOscillator();
-    const osc2 = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    const filter = audioCtx.createBiquadFilter();
-
-    osc1.type = 'sine';
-    osc2.type = 'triangle';
-    osc1.frequency.value = 110;
-    osc2.frequency.value = 110;
-    osc2.detune.value = -5;
-    filter.type = 'lowpass';
-    filter.frequency.value = 420;
-    filter.Q.value = 0.7;
-
-    gain.gain.setValueAtTime(0.00003, now);
-    gain.gain.linearRampToValueAtTime(0.007, now + 1.8);
-    gain.gain.setTargetAtTime(0.005, now + 2.5, 4);
-    gain.gain.exponentialRampToValueAtTime(0.00001, now + 9);
-
-    osc1.connect(filter);
-    osc2.connect(filter);
-    filter.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    osc1.start(now);
-    osc2.start(now);
-    osc1.stop(now + 9);
-    osc2.stop(now + 9);
-  };
-
-  const startAmbient = () => {
-    if (audioStartedRef.current) return;
-    audioStartedRef.current = true;
-    try {
-      playAmbientAura();
-    } catch (err) {
-      // Autoplay may be blocked until the user interacts.
-    }
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      startAmbient();
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const playPianoNote = (noteLabel) => {
-    const noteFrequencies = {
-      C: 261.63,
-      'C#': 277.18,
-      D: 293.66,
-      'D#': 311.13,
-      E: 329.63,
-      F: 349.23,
-      'F#': 369.99,
-      G: 392.0,
-      'G#': 415.3,
-      A: 440.0,
-      'A#': 466.16,
-      B: 493.88,
-    };
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const audioCtx = audioContextRef.current || new AudioContext();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
     audioContextRef.current = audioCtx;
-    const now = audioCtx.currentTime;
-    const frequency = noteFrequencies[noteLabel] || 440;
-
-    const gain = audioCtx.createGain();
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 1800;
-    filter.Q.value = 1.1;
-
-    gain.gain.setValueAtTime(0.00005, now);
-    gain.gain.linearRampToValueAtTime(0.08, now + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.02, now + 0.22);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
 
     const osc1 = audioCtx.createOscillator();
     const osc2 = audioCtx.createOscillator();
-    osc1.type = 'triangle';
-    osc2.type = 'sine';
-    osc1.frequency.value = frequency;
-    osc2.frequency.value = frequency;
-    osc2.detune.value = 10;
-
     const noise = audioCtx.createBufferSource();
-    const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.1, audioCtx.sampleRate);
-    const channelData = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < channelData.length; i += 1) {
-      channelData[i] = (Math.random() * 2 - 1) * 0.002;
-    }
-    noise.buffer = noiseBuffer;
     const noiseGain = audioCtx.createGain();
-    noiseGain.gain.setValueAtTime(0.008, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.00005, now + 0.18);
+    const filter = audioCtx.createBiquadFilter();
+    const gain = audioCtx.createGain();
+
+    const harmonics = 7;
+    const real = new Float32Array(harmonics + 1);
+    const imag = new Float32Array(harmonics + 1);
+    real[1] = 1;
+    real[2] = 0.55;
+    real[3] = 0.28;
+    real[4] = 0.16;
+    real[5] = 0.08;
+    real[6] = 0.04;
+    real[7] = 0.02;
+    const wave = audioCtx.createPeriodicWave(real, imag, { disableNormalization: true });
+
+    osc1.setPeriodicWave(wave);
+    osc1.frequency.value = 110;
+
+    osc2.type = 'sine';
+    osc2.frequency.value = 220;
+    osc2.detune.value = -12;
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(260, now);
+    filter.frequency.linearRampToValueAtTime(1200, now + 3);
+    filter.frequency.exponentialRampToValueAtTime(420, now + 12);
+    filter.Q.value = 0.9;
+
+    gain.gain.setValueAtTime(0.00001, now);
+    gain.gain.linearRampToValueAtTime(0.018, now + 2.2);
+    gain.gain.setTargetAtTime(0.005, now + 3.5, 3.5);
+    gain.gain.exponentialRampToValueAtTime(0.00005, now + 14);
+
+    noise.buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.4, audioCtx.sampleRate);
+    const bufferData = noise.buffer.getChannelData(0);
+    for (let i = 0; i < bufferData.length; i += 1) {
+      bufferData[i] = (Math.random() * 2 - 1) * 0.002;
+    }
+    noiseGain.gain.setValueAtTime(0, now);
+    noiseGain.gain.linearRampToValueAtTime(0.01, now + 1.2);
+    noiseGain.gain.exponentialRampToValueAtTime(0.00008, now + 8);
 
     osc1.connect(filter);
     osc2.connect(filter);
@@ -233,28 +182,184 @@ function LandingPage() {
     osc2.start(now);
     noise.start(now);
 
-    osc1.stop(now + 1.4);
-    osc2.stop(now + 1.4);
-    noise.stop(now + 0.18);
+    osc1.stop(now + 12);
+    osc2.stop(now + 12);
+    noise.stop(now + 2.4);
   };
 
-  const keyboardKeys = useMemo(
-    () => [
-      { label: 'C', type: 'white' },
-      { label: 'C#', type: 'black' },
-      { label: 'D', type: 'white' },
-      { label: 'D#', type: 'black' },
-      { label: 'E', type: 'white' },
-      { label: 'F', type: 'white' },
-      { label: 'F#', type: 'black' },
-      { label: 'G', type: 'white' },
-      { label: 'G#', type: 'black' },
-      { label: 'A', type: 'white' },
-      { label: 'A#', type: 'black' },
-      { label: 'B', type: 'white' },
-    ],
-    []
-  );
+  const startAmbient = async () => {
+    if (audioStartedRef.current) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const audioCtx = audioContextRef.current || new AudioContext();
+    audioContextRef.current = audioCtx;
+
+    if (audioCtx.state === 'suspended') {
+      try {
+        await audioCtx.resume();
+      } catch (err) {
+        return;
+      }
+    }
+
+    audioStartedRef.current = true;
+    playAmbientAura();
+  };
+
+  useEffect(() => {
+    const tryStartAmbient = (event) => {
+      if (event?.target?.closest && event.target.closest('a[href^="#"]')) {
+        return;
+      }
+      startAmbient();
+    };
+
+    const handleSustainDown = (event) => {
+      if (event.code !== 'KeyS') return;
+      if (sustainHoldRef.current) return;
+      sustainHoldRef.current = true;
+      setSustainActive(true);
+    };
+
+    const handleSustainUp = (event) => {
+      if (event.code !== 'KeyS') return;
+      sustainHoldRef.current = false;
+      setSustainActive(sustainMode);
+    };
+
+    const timer = setTimeout(() => {
+      startAmbient();
+    }, 800);
+
+    document.addEventListener('click', tryStartAmbient, { once: true });
+    document.addEventListener('keydown', tryStartAmbient, { once: true });
+    document.addEventListener('keydown', handleSustainDown);
+    document.addEventListener('keyup', handleSustainUp);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', tryStartAmbient);
+      document.removeEventListener('keydown', tryStartAmbient);
+      document.removeEventListener('keydown', handleSustainDown);
+      document.removeEventListener('keyup', handleSustainUp);
+    };
+  }, []);
+
+  const playPianoNote = (noteLabel) => {
+    const noteFrequencies = {
+      C4: 261.63,
+      'C#4': 277.18,
+      D4: 293.66,
+      'D#4': 311.13,
+      E4: 329.63,
+      F4: 349.23,
+      'F#4': 369.99,
+      G4: 392.0,
+      'G#4': 415.3,
+      A4: 440.0,
+      'A#4': 466.16,
+      B4: 493.88,
+      C5: 523.25,
+      'C#5': 554.37,
+      D5: 587.33,
+      'D#5': 622.25,
+      E5: 659.25,
+      F5: 698.46,
+      'F#5': 739.99,
+      G5: 783.99,
+      'G#5': 830.61,
+      A5: 880.0,
+      'A#5': 932.33,
+      B5: 987.77,
+    };
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const audioCtx = audioContextRef.current || new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    audioContextRef.current = audioCtx;
+    const now = audioCtx.currentTime;
+    const frequency = noteFrequencies[noteLabel] || 440;
+
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const noise = audioCtx.createBufferSource();
+    const noiseGain = audioCtx.createGain();
+
+    const harmonics = new Float32Array([0, 1, 0.6, 0.33, 0.17, 0.08, 0.04, 0.02]);
+    const imag = new Float32Array(harmonics.length);
+    const periodicWave = audioCtx.createPeriodicWave(harmonics, imag, { disableNormalization: true });
+
+    osc1.setPeriodicWave(periodicWave);
+    osc1.frequency.value = frequency;
+    osc1.detune.value = -1;
+
+    osc2.type = 'triangle';
+    osc2.frequency.value = frequency * 2;
+    osc2.detune.value = 3;
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2200, now);
+    filter.frequency.exponentialRampToValueAtTime(900, now + 0.12);
+    filter.frequency.exponentialRampToValueAtTime(600, now + 1.0);
+    filter.Q.value = 1.2;
+
+    gain.gain.setValueAtTime(0.00001, now);
+    gain.gain.linearRampToValueAtTime(0.14, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.05, now + 0.14);
+    gain.gain.setTargetAtTime(0.02, now + 0.22, 0.35);
+    gain.gain.setTargetAtTime(0.00005, now + 0.9, 0.5);
+
+    const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.45, audioCtx.sampleRate);
+    const channelData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < channelData.length; i += 1) {
+      channelData[i] = (Math.random() * 2 - 1) * 0.0018;
+    }
+    noise.buffer = noiseBuffer;
+    noise.loop = false;
+
+    noiseGain.gain.setValueAtTime(0, now);
+    noiseGain.gain.linearRampToValueAtTime(0.009, now + 0.015);
+    noiseGain.gain.exponentialRampToValueAtTime(0.00008, now + 0.75);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    noise.connect(noiseGain);
+    noiseGain.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    noise.start(now);
+
+    const sustainEngaged = sustainMode || sustainHoldRef.current;
+    const noteRelease = sustainEngaged ? 3.4 : 0.85;
+    const noiseRelease = sustainEngaged ? 0.75 : 0.25;
+
+    osc1.stop(now + noteRelease);
+    osc2.stop(now + noteRelease);
+    noise.stop(now + noiseRelease);
+  };
+
+  const keyboardKeys = useMemo(() => {
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    return [
+      ...notes.map((note) => ({
+        label: note,
+        octave: 4,
+        noteId: `${note}4`,
+        type: note.includes('#') ? 'black' : 'white',
+      })),
+      ...notes.map((note) => ({
+        label: note,
+        octave: 5,
+        noteId: `${note}5`,
+        type: note.includes('#') ? 'black' : 'white',
+      })),
+    ];
+  }, []);
 
   return (
     <div className="page-shell">
@@ -504,9 +609,18 @@ function LandingPage() {
           </div>
           <div className="keyboard-shell">
             <div className="keyboard-actions">
-              <button type="button" className="button button-secondary" onClick={startAmbient}>
-                Activar sonido de ambiente
+              <button
+                type="button"
+                className={`button button-secondary keyboard-sustain-toggle ${sustainActive ? 'active' : ''}`}
+                onClick={() => {
+                  const nextMode = !sustainMode;
+                  setSustainMode(nextMode);
+                  setSustainActive(nextMode || sustainHoldRef.current);
+                }}
+              >
+                Sustain {sustainActive ? 'On' : 'Off'}
               </button>
+              <p className="keyboard-note">Mantén S para sustain; usa este botón en pantalla táctil.</p>
             </div>
             <div className="keyboard">
               {keyboardKeys.map((key) => {
@@ -514,15 +628,19 @@ function LandingPage() {
                 const isActive = scaleNotes.has(key.label);
                 return (
                   <button
-                    key={key.label}
+                    key={key.noteId}
                     className={`piano-key ${key.type} ${isActive ? 'active' : ''}`}
                     type="button"
                     onClick={() => {
                       startAmbient();
-                      playPianoNote(key.label);
+                      playPianoNote(key.noteId);
                     }}
+                    aria-label={`${key.label}${key.octave}`}
                   >
-                    <span>{key.label}</span>
+                    <span>
+                      {key.label}
+                      <small>{key.octave}</small>
+                    </span>
                   </button>
                 );
               })}

@@ -1360,12 +1360,14 @@ h1 {
 }
 
 .navbar-brand .brand-logo {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
 }
 
 .navbar-brand .brand-name {
-  font-size: 1.05rem;
+  width: auto;
+  height: auto;
 }
 
 .navbar-avatar-link {
@@ -1524,10 +1526,9 @@ h1 {
 
 .profile-content {
   display: grid;
-  gap: 1.5rem;
-}
-
-.profile-section {
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: start;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.8rem;
@@ -1539,13 +1540,21 @@ h1 {
   margin-bottom: 1rem;
 }
 
+.profile-section {
+  width: 100%;
+}
+
 .profile-card {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1.4rem;
-  padding: 1.5rem;
+  border-radius: 1.6rem;
+  padding: 2rem;
   display: grid;
-  gap: 1.2rem;
+  gap: 1.4rem;
+  width: 100%;
+  max-width: 980px;
+  min-width: 0;
+  margin: 0 auto;
 }
 
 .profile-page {
@@ -1626,10 +1635,21 @@ h1 {
   font-weight: 600;
 }
 
+/* Layout each field as a row so label and value/badge align horizontally */
+.profile-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .profile-value {
   margin: 0;
   color: #f5f5f5;
   font-size: 0.95rem;
+}
+
+.profile-value.role-badge {
+  margin: 0;
 }
 
 .role-badge {
@@ -1643,6 +1663,12 @@ h1 {
   font-weight: 600;
 }
 
+.profile-fields .role-badge {
+  margin-top: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+}
+
 .status-active {
   color: #4ade80;
   font-weight: 700;
@@ -1651,6 +1677,21 @@ h1 {
 .password-form {
   display: grid;
   gap: 1rem;
+}
+
+/* Responsive: stack profile columns on small screens to avoid overlap */
+@media (max-width: 720px) {
+  .profile-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .avatar-preview-card {
+    justify-self: center;
+    align-items: center;
+  }
+  .profile-fields .role-badge {
+    margin-top: 0.5rem;
+  }
 }
 
 .password-form .form-group {
@@ -1707,19 +1748,29 @@ h1 {
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
+  width: 100%;
+  min-width: 0;
 }
 
 .avatar-preview-card {
   display: grid;
   gap: 1rem;
-  align-items: center;
-  justify-items: center;
-  justify-self: center;
+  align-items: start;
+  justify-items: start;
+  justify-self: start;
+  padding: 0.9rem;
+  background: rgba(255,255,255,0.02);
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255,255,255,0.02);
+  width: 100%;
+  max-width: 260px;
 }
 
 .avatar-preview-shell {
-  width: 200px;
-  height: 200px;
+  width: 180px;
+  height: 180px;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
   border-radius: 1.75rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -1751,6 +1802,10 @@ h1 {
   align-items: center;
 }
 
+.avatar-upload-label .button {
+  margin-top: 0.5rem;
+}
+
 .avatar-selected-tag {
   background: rgba(201, 168, 76, 0.16);
   color: #f7f0c5;
@@ -1758,6 +1813,12 @@ h1 {
   padding: 0.55rem 0.95rem;
   font-size: 0.9rem;
   border: 1px solid rgba(201, 168, 76, 0.22);
+}
+
+.profile-form > .button.button-primary {
+  margin-top: 1rem;
+  width: 100%;
+  max-width: 340px;
 }
 
 .profile-fields {

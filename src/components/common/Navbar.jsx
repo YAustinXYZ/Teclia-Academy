@@ -47,7 +47,7 @@ export const Navbar = () => {
                   </>
                 )}
               </div>
-              <span className="user-role">
+              <span className="user-role role-badge">
                 {user.role === 'admin'
                   ? '👑 Instructor'
                   : user.plan_tier

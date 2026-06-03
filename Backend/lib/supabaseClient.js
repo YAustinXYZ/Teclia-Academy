@@ -1,11 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-const bucket = process.env.SUPABASE_BUCKET || 'uploads';
+const cleanEnvValue = (value) => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.replace(/^['"]|['"]$/g, '');
+};
+
+const supabaseUrl = cleanEnvValue(process.env.SUPABASE_URL);
+const supabaseServiceKey = cleanEnvValue(process.env.SUPABASE_SERVICE_KEY);
+const bucket = cleanEnvValue(process.env.SUPABASE_BUCKET) || 'uploads';
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY must be defined');
+  throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY must be defined and not empty');
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {

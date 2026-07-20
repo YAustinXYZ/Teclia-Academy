@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:vercel": "npm run prisma:generate --prefix Backend && npm run prisma:deploy --prefix Backend && vite build",
+    "build:vercel": "node scripts/vercel-build.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

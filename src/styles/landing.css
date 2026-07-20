@@ -255,8 +255,12 @@
 /* ---------- Sections ---------- */
 .lp-section {
   width: min(1120px, calc(100% - 2.5rem));
-  margin: 4.5rem auto 0;
+  margin: 3rem auto 0;
   padding: 0;
+}
+
+.lp-hero-split + .lp-section {
+  margin-top: 2.25rem;
 }
 
 .lp-section-head {

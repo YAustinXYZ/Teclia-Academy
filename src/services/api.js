@@ -71,9 +71,10 @@ export const authService = {
     api.get('/auth/me'),
   updateProfile: (name, avatar, options = {}) => {
     if (avatar instanceof FormData) {
+      // Let the browser set multipart boundary — forcing Content-Type breaks file uploads.
       return api.patch('/auth/profile', avatar, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': undefined,
         },
       });
     }

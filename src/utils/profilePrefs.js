@@ -4,6 +4,7 @@ const keyFor = (userId) => `teclia:prefs:${VERSION}:${userId}`;
 
 const DEFAULT_PREFS = {
   language: 'es',
+  theme: 'dark',
   emailNotifications: true,
   marketingEmails: false,
   profileVisibility: 'private',
@@ -55,13 +56,14 @@ export const pushRecentActivity = (userId, entry) => {
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 export const AVATAR_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-export const validateAvatarFile = (file) => {
-  if (!file) return 'Selecciona una imagen.';
+export const validateAvatarFile = (file, t = null) => {
+  const msg = (key, fallback) => (typeof t === 'function' ? t(key) : fallback);
+  if (!file) return msg('avatar.required', 'Selecciona una imagen.');
   if (!AVATAR_ALLOWED_TYPES.includes(file.type)) {
-    return 'Solo se permiten JPEG, PNG o WebP.';
+    return msg('avatar.type', 'Solo se permiten JPEG, PNG o WebP.');
   }
   if (file.size > AVATAR_MAX_BYTES) {
-    return 'La imagen no puede superar 2 MB.';
+    return msg('avatar.size', 'La imagen no puede superar 2 MB.');
   }
   return null;
 };

@@ -1,5 +1,6 @@
 import { BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { PreferencesProvider } from './context/PreferencesContext.jsx';
 import { ContentProvider } from './context/ContentContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { Navbar } from './components/common/Navbar.jsx';
@@ -15,11 +16,13 @@ const AppProviders = ({ children }) => {
   return (
     <ErrorBoundary>
       <AuthProvider onSessionExpiredToast={showSessionExpiredToast}>
-        <ContentProvider>
-          <ToastProvider>
-            {children({ toast, dismissToast })}
-          </ToastProvider>
-        </ContentProvider>
+        <PreferencesProvider>
+          <ContentProvider>
+            <ToastProvider>
+              {children({ toast, dismissToast })}
+            </ToastProvider>
+          </ContentProvider>
+        </PreferencesProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

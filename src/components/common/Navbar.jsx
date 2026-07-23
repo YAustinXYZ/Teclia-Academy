@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 import { Logo } from './Logo.jsx';
 import { UIIcon } from './Icons.jsx';
 import { UserAvatar } from './UserAvatar.jsx';
@@ -8,6 +9,7 @@ import { useEffect, useState } from 'react';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
+  const { t } = usePreferences();
   const location = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -42,12 +44,12 @@ export const Navbar = () => {
   const closeMobile = () => setMobileOpen(false);
 
   const roleLabel = user?.role === 'admin'
-    ? 'Instructor'
+    ? t('nav.instructor')
     : user?.plan_tier
       ? planLabel(user.plan_tier)
       : user?.role === 'premium'
-        ? 'Alumno premium'
-        : 'Estudiante';
+        ? t('nav.premiumStudent')
+        : t('nav.student');
 
   const navLinkClass = (path, opts) =>
     `button button-ghost nav-link ${isActive(path, opts) ? 'nav-active' : ''}`;
@@ -55,7 +57,7 @@ export const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-brand" title="Volver al inicio" onClick={closeMobile}>
+        <Link to="/" className="navbar-brand" title="Teclia" onClick={closeMobile}>
           <Logo size={36} showTagline={false} />
         </Link>
 
@@ -78,33 +80,33 @@ export const Navbar = () => {
 
               <div className="navbar-links-inline">
                 <Link to="/recursos" className={navLinkClass('/recursos')} onClick={closeMobile}>
-                  Recursos
+                  {t('nav.resources')}
                 </Link>
                 {user.role === 'admin' && (
                   <>
                     <Link to="/admin" className={navLinkClass('/admin', { exact: true })} onClick={closeMobile}>
-                      Mi escuela
+                      {t('nav.school')}
                     </Link>
                     <Link to="/admin/students" className={navLinkClass('/admin/students')} onClick={closeMobile}>
-                      Estudiantes
+                      {t('nav.students')}
                     </Link>
                     <Link
                       to="/admin/upload"
                       className={`button button-ghost nav-link ${['/admin/upload', '/admin/content'].includes(location.pathname) ? 'nav-active' : ''}`}
                       onClick={closeMobile}
                     >
-                      Contenido
+                      {t('nav.content')}
                     </Link>
                   </>
                 )}
               </div>
 
               <div className="navbar-mobile-account">
-                <Link to="/profile" className="button button-ghost" onClick={closeMobile}>Mi perfil</Link>
-                <Link to="/profile?tab=security" className="button button-ghost" onClick={closeMobile}>Seguridad</Link>
-                <Link to="/profile?tab=subscription" className="button button-ghost" onClick={closeMobile}>Suscripción</Link>
+                <Link to="/profile" className="button button-ghost" onClick={closeMobile}>{t('nav.profile')}</Link>
+                <Link to="/profile?tab=security" className="button button-ghost" onClick={closeMobile}>{t('nav.security')}</Link>
+                <Link to="/profile?tab=subscription" className="button button-ghost" onClick={closeMobile}>{t('nav.subscription')}</Link>
                 <button type="button" className="button button-secondary" onClick={() => { handleLogout(); closeMobile(); }}>
-                  Cerrar sesión
+                  {t('nav.logout')}
                 </button>
               </div>
 
@@ -113,10 +115,10 @@ export const Navbar = () => {
           ) : (
             <div className="navbar-links">
               <Link to="/auth/login" className="button button-secondary" onClick={closeMobile}>
-                Iniciar sesión
+                {t('nav.login')}
               </Link>
               <Link to="/auth/signup" className="button button-primary" onClick={closeMobile}>
-                Registro de alumnos
+                {t('nav.signup')}
               </Link>
             </div>
           )}
@@ -125,7 +127,7 @@ export const Navbar = () => {
         <div className="navbar-actions">
           {user && (
             <>
-              <Link to="/profile" className="navbar-avatar-link navbar-avatar-desktop" title="Mi perfil" onClick={closeMobile}>
+              <Link to="/profile" className="navbar-avatar-link navbar-avatar-desktop" title={t('nav.profile')} onClick={closeMobile}>
                 <UserAvatar
                   name={user.name}
                   avatarUrl={user.avatar_url}
@@ -139,8 +141,8 @@ export const Navbar = () => {
                 <button
                   type="button"
                   className="button button-settings"
-                  title="Cuenta"
-                  aria-label="Menú de cuenta"
+                  title={t('nav.account')}
+                  aria-label={t('nav.account')}
                   aria-expanded={settingsOpen}
                   aria-haspopup="menu"
                   onClick={() => setSettingsOpen((open) => !open)}
@@ -150,13 +152,16 @@ export const Navbar = () => {
                 {settingsOpen && (
                   <div className="settings-dropdown" role="menu">
                     <Link to="/profile" className="settings-option" role="menuitem" onClick={() => setSettingsOpen(false)}>
-                      <UIIcon name="user" size={16} /> Mi perfil
+                      <UIIcon name="user" size={16} /> {t('nav.profile')}
                     </Link>
                     <Link to="/profile?tab=security" className="settings-option" role="menuitem" onClick={() => setSettingsOpen(false)}>
-                      <UIIcon name="lock" size={16} /> Seguridad
+                      <UIIcon name="lock" size={16} /> {t('nav.security')}
                     </Link>
                     <Link to="/profile?tab=subscription" className="settings-option" role="menuitem" onClick={() => setSettingsOpen(false)}>
-                      <UIIcon name="star" size={16} /> Suscripción
+                      <UIIcon name="star" size={16} /> {t('nav.subscription')}
+                    </Link>
+                    <Link to="/profile?tab=preferences" className="settings-option" role="menuitem" onClick={() => setSettingsOpen(false)}>
+                      <UIIcon name="gear" size={16} /> {t('profile.tab.preferences')}
                     </Link>
                     <div className="settings-divider" />
                     <button
@@ -168,7 +173,7 @@ export const Navbar = () => {
                         setSettingsOpen(false);
                       }}
                     >
-                      <UIIcon name="logout" size={16} /> Cerrar sesión
+                      <UIIcon name="logout" size={16} /> {t('nav.logout')}
                     </button>
                   </div>
                 )}
@@ -179,7 +184,7 @@ export const Navbar = () => {
           <button
             type="button"
             className="navbar-toggle"
-            aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-label={mobileOpen ? t('nav.closeMenu') : t('nav.openMenu')}
             aria-expanded={mobileOpen}
             aria-controls="primary-navigation"
             onClick={() => setMobileOpen((open) => !open)}
@@ -193,7 +198,7 @@ export const Navbar = () => {
         <button
           type="button"
           className="navbar-overlay"
-          aria-label="Cerrar menú"
+          aria-label={t('nav.closeMenu')}
           onClick={closeMobile}
         />
       )}

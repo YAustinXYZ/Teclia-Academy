@@ -15,6 +15,7 @@ import StripeCardForm from '../../components/payments/StripeCardForm.jsx';
 import { CheckoutFlow } from '../../components/payments/CheckoutFlow.jsx';
 import { UIIcon } from '../../components/common/Icons.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 
 const vipPlans = [
   {
@@ -63,6 +64,7 @@ const mapPasswordError = (err) => {
 
 export const ProfilePage = () => {
   const { user, updateProfile } = useAuth();
+  const { t, language, theme, setLanguage, setTheme } = usePreferences();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('general');
@@ -88,13 +90,16 @@ export const ProfilePage = () => {
 
   useEffect(() => {
     setName(user?.name || '');
-    setAvatarPreview(resolveAvatar(user?.avatar_url || ''));
-    setAvatarFile(null);
-    setAvatarBroken(false);
     setAvatarError(null);
-    setPrefs(loadProfilePrefs(user?.id));
+    setPrefs({ ...loadProfilePrefs(user?.id), language, theme });
     setRecentActivity(loadRecentActivity(user?.id));
-  }, [user]);
+  }, [user?.id, user?.name, language, theme]);
+
+  useEffect(() => {
+    if (avatarFile) return;
+    setAvatarPreview(resolveAvatar(user?.avatar_url || ''));
+    setAvatarBroken(false);
+  }, [user?.avatar_url, avatarFile]);
 
   const selectTab = (tab) => {
     setActiveTab(tab);
@@ -106,7 +111,7 @@ export const ProfilePage = () => {
     event.target.value = '';
     if (!file) return;
 
-    const validationError = validateAvatarFile(file);
+    const validationError = validateAvatarFile(file, t);
     if (validationError) {
       setAvatarError(validationError);
       setAvatarFile(null);
@@ -117,7 +122,8 @@ export const ProfilePage = () => {
     setAvatarError(null);
     setAvatarFile(file);
     setAvatarBroken(false);
-    setAvatarPreview(URL.createObjectURL(file));
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreview(objectUrl);
   };
 
   const handleRemoveAvatar = async () => {
@@ -130,12 +136,12 @@ export const ProfilePage = () => {
       setAvatarFile(null);
       setAvatarBroken(false);
       clearStoredAvatar(user?.id);
-      toast.success('Foto de perfil eliminada.');
-      setProfileMessage('Foto de perfil eliminada.');
+      toast.success(t('profile.photoRemovedOk'));
+      setProfileMessage(t('profile.photoRemovedOk'));
       setTimeout(() => setProfileMessage(null), 3000);
     } catch (err) {
       const { general } = mapProfileError(err);
-      const message = general || 'No se pudo eliminar la foto.';
+      const message = general || t('profile.photoRemovedOk');
       setProfileError(message);
       toast.error(message);
     } finally {
@@ -147,7 +153,11 @@ export const ProfilePage = () => {
     if (!value) return '—';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '—';
-    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString(language === 'en' ? 'en-US' : 'es-MX', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
   const handleProfileSave = async (e) => {
@@ -161,10 +171,11 @@ export const ProfilePage = () => {
     try {
       let payload = undefined;
       if (avatarFile) {
-        const validationError = validateAvatarFile(avatarFile);
+        const validationError = validateAvatarFile(avatarFile, t);
         if (validationError) {
           setAvatarError(validationError);
           toast.error(validationError);
+          setProfileSaving(false);
           return;
         }
         payload = new FormData();
@@ -172,16 +183,17 @@ export const ProfilePage = () => {
         payload.append('avatar', avatarFile);
       }
       const res = await updateProfile(name, payload);
-      setProfileMessage('Perfil actualizado correctamente.');
-      toast.success('Perfil actualizado correctamente.');
+      setProfileMessage(t('profile.saved'));
+      toast.success(t('profile.saved'));
       const savedUrl = res.user.avatar_url || '';
       if (savedUrl) {
         storeAvatar(res.user.id, savedUrl);
       } else {
         clearStoredAvatar(res.user.id);
       }
-      setAvatarPreview(resolveAvatar(savedUrl) || '');
       setAvatarFile(null);
+      setAvatarBroken(false);
+      setAvatarPreview(resolveAvatar(savedUrl) || '');
       setTimeout(() => setProfileMessage(null), 3000);
     } catch (err) {
       const { general, field } = mapProfileError(err);
@@ -231,19 +243,25 @@ export const ProfilePage = () => {
 
   const handleSavePrefs = (e) => {
     e.preventDefault();
-    saveProfilePrefs(user?.id, prefs);
+    const next = {
+      ...prefs,
+      language,
+      theme,
+    };
+    saveProfilePrefs(user?.id, next);
+    setPrefs(next);
     setPrefsSaved(true);
-    toast.success('Preferencias guardadas en este dispositivo.');
+    toast.success(t('profile.prefsSaved'));
     setTimeout(() => setPrefsSaved(false), 2500);
   };
 
   const roleLabel = user?.role === 'admin'
-    ? 'Instructor'
+    ? t('profile.role.instructor')
     : user?.plan_tier
       ? planLabel(user.plan_tier)
       : user?.role === 'premium'
-        ? 'Premium'
-        : 'Estudiante';
+        ? t('profile.role.premium')
+        : t('profile.role.student');
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -256,19 +274,19 @@ export const ProfilePage = () => {
     <div className="profile-page">
       <div className="page-shell">
         <div className="profile-header">
-          <h1>Perfil</h1>
-          <p>Administra tu cuenta, seguridad y preferencias.</p>
+          <h1>{t('profile.title')}</h1>
+          <p>{t('profile.subtitle')}</p>
         </div>
 
-        <div className="profile-tabs" role="tablist" aria-label="Secciones del perfil">
+        <div className="profile-tabs" role="tablist" aria-label={t('profile.title')}>
           {[
-            ['general', 'General'],
-            ['security', 'Seguridad'],
-            ['subscription', 'Suscripción'],
-            ['preferences', 'Preferencias'],
-            ['activity', 'Actividad'],
-            ['billing', 'Facturación'],
-          ].map(([id, label]) => (
+            ['general', 'profile.tab.general'],
+            ['security', 'profile.tab.security'],
+            ['subscription', 'profile.tab.subscription'],
+            ['preferences', 'profile.tab.preferences'],
+            ['activity', 'profile.tab.activity'],
+            ['billing', 'profile.tab.billing'],
+          ].map(([id, labelKey]) => (
             <button
               key={id}
               type="button"
@@ -277,7 +295,7 @@ export const ProfilePage = () => {
               className={`profile-tab ${activeTab === id ? 'active' : ''}`}
               onClick={() => selectTab(id)}
             >
-              {label}
+              {t(labelKey)}
             </button>
           ))}
         </div>
@@ -286,21 +304,21 @@ export const ProfilePage = () => {
           <div className="profile-content">
             <div className="profile-summary-grid">
               <div className="profile-summary-card">
-                <span className="profile-summary-label">Plan actual</span>
+                <span className="profile-summary-label">{t('profile.plan')}</span>
                 <strong className="profile-summary-value role-badge">{roleLabel}</strong>
               </div>
               <div className="profile-summary-card">
-                <span className="profile-summary-label">Miembro desde</span>
+                <span className="profile-summary-label">{t('profile.memberSince')}</span>
                 <strong className="profile-summary-value">{formatMemberSince(user?.created_at)}</strong>
               </div>
               <div className="profile-summary-card">
-                <span className="profile-summary-label">Correo</span>
+                <span className="profile-summary-label">{t('profile.email')}</span>
                 <strong className="profile-summary-value">{user?.email}</strong>
               </div>
             </div>
 
             <div className="profile-section">
-              <h2>Información general</h2>
+              <h2>{t('profile.general')}</h2>
               <div className="profile-card">
                 <form onSubmit={handleProfileSave} className="profile-form">
                   <div className="profile-row">
@@ -309,9 +327,8 @@ export const ProfilePage = () => {
                         {avatarPreview && !avatarBroken ? (
                           <img
                             src={avatarPreview}
-                            alt={user?.name ? `Foto de perfil de ${user.name}` : 'Avatar de perfil'}
+                            alt={user?.name ? `Foto de perfil de ${user.name}` : 'Avatar'}
                             className="profile-avatar-image"
-                            loading="lazy"
                             decoding="async"
                             width={128}
                             height={128}
@@ -322,10 +339,10 @@ export const ProfilePage = () => {
                         )}
                       </div>
                       <label className="avatar-upload-label">
-                        <span className="button button-secondary">Seleccionar imagen</span>
+                        <span className="button button-secondary">{t('profile.selectImage')}</span>
                         <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} />
                       </label>
-                      <p className="avatar-help-text">JPEG, PNG o WebP · máx. 2 MB</p>
+                      <p className="avatar-help-text">{t('profile.imageHint')}</p>
                       {(avatarPreview || user?.avatar_url) && (
                         <button
                           type="button"
@@ -333,28 +350,28 @@ export const ProfilePage = () => {
                           onClick={handleRemoveAvatar}
                           disabled={profileSaving}
                         >
-                          Quitar foto
+                          {t('profile.removePhoto')}
                         </button>
                       )}
-                      {avatarFile && <div className="avatar-selected-tag">Vista previa lista — pulsa Guardar</div>}
+                      {avatarFile && <div className="avatar-selected-tag">{t('profile.previewReady')}</div>}
                       {avatarError && <p className="field-error">{avatarError}</p>}
                     </div>
                     <div className="profile-fields">
                       <div className="profile-field">
-                        <label htmlFor="profile-name">Nombre</label>
-                        <input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" />
+                        <label htmlFor="profile-name">{t('profile.name')}</label>
+                        <input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('profile.name')} />
                         {nameFieldError && <p className="field-error">{nameFieldError}</p>}
                       </div>
                       <div className="profile-field">
-                        <label>Email</label>
+                        <label>{t('profile.email')}</label>
                         <p className="profile-value">{user?.email}</p>
                       </div>
                       <div className="profile-field">
-                        <label>Rol</label>
+                        <label>{t('profile.role')}</label>
                         <p className="profile-value role-badge">{roleLabel}</p>
                       </div>
                       <div className="profile-field">
-                        <label>Última actualización</label>
+                        <label>{t('profile.lastUpdate')}</label>
                         <p className="profile-value">{formatMemberSince(user?.updated_at || user?.created_at)}</p>
                       </div>
                     </div>
@@ -363,7 +380,7 @@ export const ProfilePage = () => {
                   {profileError && <div className="error-message">{profileError}</div>}
                   {profileMessage && <div className="success-message">{profileMessage}</div>}
                   <button type="submit" className="button button-primary" disabled={profileSaving}>
-                    {profileSaving ? 'Guardando...' : 'Guardar cambios'}
+                    {profileSaving ? t('profile.saving') : t('profile.save')}
                   </button>
                 </form>
               </div>
@@ -493,20 +510,58 @@ export const ProfilePage = () => {
         {activeTab === 'preferences' && (
           <div className="profile-content">
             <div className="profile-section">
-              <h2>Preferencias</h2>
+              <h2>{t('profile.prefs')}</h2>
               <div className="profile-card">
                 <form onSubmit={handleSavePrefs} className="profile-form prefs-form">
                   <div className="profile-field">
-                    <label htmlFor="pref-language">Idioma</label>
+                    <label htmlFor="pref-language">{t('profile.language')}</label>
                     <select
                       id="pref-language"
                       className="filter-select"
-                      value={prefs.language}
-                      onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value }))}
+                      value={language}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setLanguage(next);
+                        setPrefs((p) => ({ ...p, language: next }));
+                      }}
                     >
                       <option value="es">Español</option>
                       <option value="en">English</option>
                     </select>
+                  </div>
+                  <div className="profile-field">
+                    <label htmlFor="pref-theme">{t('profile.theme')}</label>
+                    <div className="theme-toggle-row">
+                      <select
+                        id="pref-theme"
+                        className="filter-select"
+                        value={theme}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setTheme(next);
+                          setPrefs((p) => ({ ...p, theme: next }));
+                        }}
+                      >
+                        <option value="dark">{t('profile.theme.dark')}</option>
+                        <option value="light">{t('profile.theme.light')}</option>
+                      </select>
+                      <div className="theme-toggle" role="group" aria-label={t('profile.theme')}>
+                        <button
+                          type="button"
+                          className={`theme-toggle-btn ${theme === 'dark' ? 'active' : ''}`}
+                          onClick={() => { setTheme('dark'); setPrefs((p) => ({ ...p, theme: 'dark' })); }}
+                        >
+                          {t('profile.theme.dark')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`theme-toggle-btn ${theme === 'light' ? 'active' : ''}`}
+                          onClick={() => { setTheme('light'); setPrefs((p) => ({ ...p, theme: 'light' })); }}
+                        >
+                          {t('profile.theme.light')}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   <label className="prefs-check">
                     <input
@@ -514,7 +569,7 @@ export const ProfilePage = () => {
                       checked={prefs.emailNotifications}
                       onChange={(e) => setPrefs((p) => ({ ...p, emailNotifications: e.target.checked }))}
                     />
-                    Recibir avisos por email (clases, progreso)
+                    {t('profile.emailNotifs')}
                   </label>
                   <label className="prefs-check">
                     <input
@@ -522,23 +577,23 @@ export const ProfilePage = () => {
                       checked={prefs.marketingEmails}
                       onChange={(e) => setPrefs((p) => ({ ...p, marketingEmails: e.target.checked }))}
                     />
-                    Recibir novedades y ofertas de Teclia
+                    {t('profile.marketing')}
                   </label>
                   <div className="profile-field">
-                    <label htmlFor="pref-visibility">Privacidad del perfil</label>
+                    <label htmlFor="pref-visibility">{t('profile.privacy')}</label>
                     <select
                       id="pref-visibility"
                       className="filter-select"
                       value={prefs.profileVisibility}
                       onChange={(e) => setPrefs((p) => ({ ...p, profileVisibility: e.target.value }))}
                     >
-                      <option value="private">Privado (solo tú e instructores)</option>
-                      <option value="community">Visible en comunidad</option>
+                      <option value="private">{t('profile.privacy.private')}</option>
+                      <option value="community">{t('profile.privacy.community')}</option>
                     </select>
                   </div>
-                  {prefsSaved && <div className="success-message">Preferencias guardadas.</div>}
-                  <button type="submit" className="button button-primary">Guardar preferencias</button>
-                  <p className="field-hint">Se guardan en este dispositivo por ahora (sin API adicional).</p>
+                  {prefsSaved && <div className="success-message">{t('profile.prefsSaved')}</div>}
+                  <button type="submit" className="button button-primary">{t('profile.savePrefs')}</button>
+                  <p className="field-hint">{t('profile.prefsHint')}</p>
                 </form>
               </div>
             </div>
@@ -548,24 +603,24 @@ export const ProfilePage = () => {
         {activeTab === 'activity' && (
           <div className="profile-content">
             <div className="profile-section">
-              <h2>Actividad reciente</h2>
+              <h2>{t('profile.activity')}</h2>
               <div className="profile-card">
                 <div className="profile-summary-grid activity-plan-grid">
                   <div className="profile-summary-card">
-                    <span className="profile-summary-label">Plan</span>
+                    <span className="profile-summary-label">{t('profile.plan')}</span>
                     <strong className="profile-summary-value">{roleLabel}</strong>
                   </div>
                   <div className="profile-summary-card">
-                    <span className="profile-summary-label">Acceso</span>
+                    <span className="profile-summary-label">{t('profile.access')}</span>
                     <strong className="profile-summary-value">
-                      {user?.plan_tier ? `Contenido ${planLabel(user.plan_tier)}` : 'Recursos gratuitos'}
+                      {user?.plan_tier ? planLabel(user.plan_tier) : t('profile.freeAccess')}
                     </strong>
                   </div>
                 </div>
                 {recentActivity.length === 0 ? (
                   <div className="empty-state compact">
-                    <p>Aún no hay recursos vistos en este dispositivo.</p>
-                    <p className="field-hint">Cuando abras lecciones desde Recursos, aparecerán aquí.</p>
+                    <p>{t('profile.noActivity')}</p>
+                    <p className="field-hint">{t('profile.noActivityHint')}</p>
                   </div>
                 ) : (
                   <ul className="activity-list">
@@ -588,23 +643,21 @@ export const ProfilePage = () => {
         {activeTab === 'billing' && (
           <div className="profile-content">
             <div className="profile-section">
-              <h2>Facturación</h2>
+              <h2>{t('profile.billing')}</h2>
               <div className="profile-card">
-                <p className="field-hint">
-                  Historial de pagos Stripe estará disponible cuando el endpoint de facturación esté activo.
-                </p>
+                <p className="field-hint">{t('profile.billingHint')}</p>
                 <div className="profile-summary-grid">
                   <div className="profile-summary-card">
-                    <span className="profile-summary-label">Plan facturado</span>
+                    <span className="profile-summary-label">{t('profile.billedPlan')}</span>
                     <strong className="profile-summary-value">{user?.plan_tier ? planLabel(user.plan_tier) : 'Free'}</strong>
                   </div>
                   <div className="profile-summary-card">
-                    <span className="profile-summary-label">Método de pago</span>
-                    <strong className="profile-summary-value">Gestionar en Suscripción</strong>
+                    <span className="profile-summary-label">{t('profile.paymentMethod')}</span>
+                    <strong className="profile-summary-value">{t('profile.manageSubscription')}</strong>
                   </div>
                 </div>
                 <button type="button" className="button button-secondary" onClick={() => selectTab('subscription')}>
-                  Ir a suscripción
+                  {t('profile.goSubscription')}
                 </button>
               </div>
             </div>

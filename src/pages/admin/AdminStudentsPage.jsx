@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/api.js';
-import { resolveAvatar } from '../../utils/avatar.js';
 import { STUDENT_PLANS } from '../../utils/plans.js';
 import { useToast } from '../../context/ToastContext.jsx';
+import { UserAvatar } from '../../components/common/UserAvatar.jsx';
+import { AdminBreadcrumbs } from '../../components/common/AdminBreadcrumbs.jsx';
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog.jsx';
 import { PlanAssignModal } from '../../components/admin/PlanAssignModal.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
@@ -13,6 +14,14 @@ import { exportStudentsToCsv } from '../../utils/csv.js';
 import { UIIcon } from '../../components/common/Icons.jsx';
 
 const ITEMS_PER_PAGE = 20;
+
+const FILTER_CHIPS = [
+  { value: 'all', label: 'Todos' },
+  { value: 'active', label: 'Activos' },
+  { value: 'suspended', label: 'Suspendidos' },
+  { value: 'has_plan', label: 'Con plan' },
+  { value: 'no_plan', label: 'Sin plan' },
+];
 
 const sortStudents = (students, sortKey, sortDir) => {
   return [...students].sort((a, b) => {
@@ -226,6 +235,12 @@ export const AdminStudentsPage = () => {
     <div className="dashboard-layout">
       <div className="dashboard-main">
         <div className="dashboard-header">
+          <AdminBreadcrumbs
+            items={[
+              { label: 'Mi escuela', to: '/admin' },
+              { label: 'Estudiantes' },
+            ]}
+          />
           <h1>Estudiantes registrados</h1>
           <p>Gestiona alumnos, asigna planes premium y consulta sus datos.</p>
         </div>
@@ -241,20 +256,17 @@ export const AdminStudentsPage = () => {
               aria-label="Buscar estudiantes"
             />
           </div>
-          <div className="filter-bar">
-            <select
-              className="filter-select"
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              aria-label="Filtrar por estado"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="active">Activos</option>
-              <option value="inactive">Inactivos</option>
-              <option value="suspended">Suspendidos</option>
-              <option value="has_plan">Con plan</option>
-              <option value="no_plan">Sin plan</option>
-            </select>
+          <div className="filter-chips" role="group" aria-label="Filtros rápidos">
+            {FILTER_CHIPS.map((chip) => (
+              <button
+                key={chip.value}
+                type="button"
+                className={`filter-chip ${statusFilter === chip.value ? 'active' : ''}`}
+                onClick={() => { setStatusFilter(chip.value); setCurrentPage(1); }}
+              >
+                {chip.label}
+              </button>
+            ))}
           </div>
           <button className="button button-secondary small" onClick={() => exportStudentsToCsv(filteredStudents)} title="Exportar a CSV">
             <UIIcon name="download" size={15} /> CSV
@@ -291,6 +303,7 @@ export const AdminStudentsPage = () => {
           </div>
         ) : pageStudents.length === 0 ? (
           <div className="empty-state">
+            <span className="empty-state-icon" aria-hidden="true"><UIIcon name="user" size={28} /></span>
             <p>{search || statusFilter !== 'all' ? 'No se encontraron estudiantes con los filtros actuales.' : 'No hay estudiantes registrados todavía.'}</p>
             {(search || statusFilter !== 'all') && (
               <button type="button" className="button button-secondary" onClick={() => { setSearch(''); setStatusFilter('all'); }}>
@@ -324,7 +337,6 @@ export const AdminStudentsPage = () => {
                 </thead>
                 <tbody>
                   {pageStudents.map((student) => {
-                    const avatarSrc = resolveAvatar(student.avatar_url || '');
                     const currentPlan = student.plan_tier || '';
                     const status = student.status || 'active';
                     const isUpdating = updatingId === student.id;
@@ -334,13 +346,13 @@ export const AdminStudentsPage = () => {
                           <input type="checkbox" checked={selectedIds.has(student.id)} onChange={() => handleSelectOne(student.id)} aria-label={`Seleccionar ${student.name}`} />
                         </td>
                         <td onClick={() => setProfileTarget(student)}>
-                          {avatarSrc ? (
-                            <img src={avatarSrc} alt={student.name} className="student-table-avatar" loading="lazy" decoding="async" width={40} height={40} />
-                          ) : (
-                            <span className="student-table-avatar student-table-avatar-placeholder">
-                              {student.name?.charAt(0)?.toUpperCase() || '?'}
-                            </span>
-                          )}
+                          <UserAvatar
+                            name={student.name}
+                            avatarUrl={student.avatar_url}
+                            size="md"
+                            className="student-table-avatar"
+                            placeholderClassName="student-table-avatar student-table-avatar-placeholder"
+                          />
                         </td>
                         <td className="td-title" onClick={() => setProfileTarget(student)}>{student.name}</td>
                         <td>{student.email}</td>
@@ -462,6 +474,18 @@ export const AdminStudentsPage = () => {
         <StudentProfilePanel
           student={profileTarget}
           onClose={() => setProfileTarget(null)}
+          onAssignPlan={(student) => {
+            setProfileTarget(null);
+            setPlanTarget(student);
+          }}
+          onSuspend={(student) => {
+            setProfileTarget(null);
+            setSuspendTarget(student);
+          }}
+          onDelete={(student) => {
+            setProfileTarget(null);
+            setDeleteTarget(student);
+          }}
         />
       )}
 

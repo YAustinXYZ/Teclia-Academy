@@ -1,4 +1,4 @@
-import { resolveAvatar } from '../../utils/avatar.js';
+import { UserAvatar } from '../common/UserAvatar.jsx';
 import { StatusBadge } from './StatusBadge.jsx';
 import { planLabel } from '../../utils/plans.js';
 
@@ -9,29 +9,35 @@ const InfoRow = ({ label, value }) => (
   </div>
 );
 
-export const StudentProfilePanel = ({ student, onClose }) => {
+export const StudentProfilePanel = ({
+  student,
+  onClose,
+  onAssignPlan,
+  onSuspend,
+  onDelete,
+}) => {
   if (!student) return null;
-  const avatarSrc = resolveAvatar(student.avatar_url || '');
   const status = student.status || 'active';
+  const isSuspended = status === 'suspended';
 
   return (
     <div className="slide-overlay" onClick={onClose}>
-      <div className="slide-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="slide-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="student-panel-title">
         <div className="slide-panel-header">
-          <h2>Detalle del estudiante</h2>
-          <button className="slide-close" onClick={onClose} aria-label="Cerrar">✕</button>
+          <h2 id="student-panel-title">Detalle del estudiante</h2>
+          <button type="button" className="slide-close" onClick={onClose} aria-label="Cerrar">✕</button>
         </div>
 
         <div className="slide-panel-body">
           <div className="student-profile-top">
             <div className="student-profile-avatar-section">
-              {avatarSrc ? (
-                <img src={avatarSrc} alt={student.name} className="student-profile-avatar" />
-              ) : (
-                <span className="student-profile-avatar student-profile-avatar-placeholder">
-                  {student.name?.charAt(0)?.toUpperCase() || '?'}
-                </span>
-              )}
+              <UserAvatar
+                name={student.name}
+                avatarUrl={student.avatar_url}
+                size="lg"
+                className="student-profile-avatar"
+                placeholderClassName="student-profile-avatar student-profile-avatar-placeholder"
+              />
             </div>
             <div className="student-profile-name-section">
               <h3>{student.name}</h3>
@@ -41,6 +47,24 @@ export const StudentProfilePanel = ({ student, onClose }) => {
                 <StatusBadge status={student.plan_tier || 'free'} type="plan" />
               </div>
             </div>
+          </div>
+
+          <div className="student-profile-quick-actions">
+            {onAssignPlan && (
+              <button type="button" className="button button-secondary small" onClick={() => onAssignPlan(student)}>
+                {student.plan_tier ? 'Cambiar plan' : 'Asignar plan'}
+              </button>
+            )}
+            {onSuspend && (
+              <button type="button" className="button button-ghost small" onClick={() => onSuspend(student)}>
+                {isSuspended ? 'Reactivar' : 'Suspender'}
+              </button>
+            )}
+            {onDelete && (
+              <button type="button" className="button button-danger small" onClick={() => onDelete(student)}>
+                Eliminar
+              </button>
+            )}
           </div>
 
           <div className="student-profile-section">

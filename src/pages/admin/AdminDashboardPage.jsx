@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Icon, UIIcon } from '../../components/common/Icons.jsx';
 import { PersonaBanner } from '../../components/common/PersonaBanner.jsx';
+import { AdminBreadcrumbs } from '../../components/common/AdminBreadcrumbs.jsx';
 import { useContent } from '../../context/ContentContext.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { statsService } from '../../services/api.js';
@@ -71,6 +72,7 @@ export const AdminDashboardPage = () => {
   return (
     <div className="dashboard-layout">
       <div className="dashboard-main">
+        <AdminBreadcrumbs items={[{ label: 'Mi escuela' }]} />
         <PersonaBanner
           name="Panel del instructor"
           subtitle={`Bienvenido, ${user?.name || ''}. Gestiona tus lecciones y recursos para los estudiantes.`}

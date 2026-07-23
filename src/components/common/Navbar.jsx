@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { Logo } from './Logo.jsx';
 import { UIIcon } from './Icons.jsx';
-import { resolveAvatar } from '../../utils/avatar.js';
+import { UserAvatar } from './UserAvatar.jsx';
 import { planLabel } from '../../utils/plans.js';
 import { useEffect, useState } from 'react';
 
@@ -12,19 +12,45 @@ export const Navbar = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isAdminPath = (path) => location.pathname === path;
-  const avatarSrc = resolveAvatar(user?.avatar_url || '');
+  const isActive = (path, { exact = false } = {}) => {
+    if (exact) return location.pathname === path;
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
 
   useEffect(() => {
     setMobileOpen(false);
     setSettingsOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    document.body.classList.add('nav-drawer-open');
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.classList.remove('nav-drawer-open');
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [mobileOpen]);
+
   const handleLogout = () => {
     logout({ redirectTo: '/auth/login' });
   };
 
   const closeMobile = () => setMobileOpen(false);
+
+  const roleLabel = user?.role === 'admin'
+    ? 'Instructor'
+    : user?.plan_tier
+      ? planLabel(user.plan_tier)
+      : user?.role === 'premium'
+        ? 'Alumno premium'
+        : 'Estudiante';
+
+  const navLinkClass = (path, opts) =>
+    `button button-ghost nav-link ${isActive(path, opts) ? 'nav-active' : ''}`;
 
   return (
     <nav className="navbar">
@@ -33,28 +59,56 @@ export const Navbar = () => {
           <Logo size={36} showTagline={false} />
         </Link>
 
-        <div className={`navbar-menu ${mobileOpen ? 'is-open' : ''}`}>
+        <div className={`navbar-menu ${mobileOpen ? 'is-open' : ''}`} id="primary-navigation">
           {user ? (
             <div className="navbar-user">
+              <div className="navbar-mobile-identity">
+                <UserAvatar
+                  name={user.name}
+                  avatarUrl={user.avatar_url}
+                  size="md"
+                  className="navbar-avatar"
+                  placeholderClassName="navbar-avatar navbar-avatar-placeholder"
+                />
+                <div>
+                  <p className="navbar-mobile-name">{user.name}</p>
+                  <span className="user-role role-badge">{roleLabel}</span>
+                </div>
+              </div>
+
               <div className="navbar-links-inline">
-                <Link to="/recursos" className="button button-ghost" onClick={closeMobile}>Recursos</Link>
+                <Link to="/recursos" className={navLinkClass('/recursos')} onClick={closeMobile}>
+                  Recursos
+                </Link>
                 {user.role === 'admin' && (
                   <>
-                    <Link to="/admin" className={`button button-ghost ${isAdminPath('/admin') ? 'nav-active' : ''}`} onClick={closeMobile}>Mi escuela</Link>
-                    <Link to="/admin/students" className={`button button-ghost ${isAdminPath('/admin/students') ? 'nav-active' : ''}`} onClick={closeMobile}>Estudiantes</Link>
-                    <Link to="/admin/upload" className={`button button-ghost ${['/admin/upload', '/admin/content'].includes(location.pathname) ? 'nav-active' : ''}`} onClick={closeMobile}>Gestionar contenido</Link>
+                    <Link to="/admin" className={navLinkClass('/admin', { exact: true })} onClick={closeMobile}>
+                      Mi escuela
+                    </Link>
+                    <Link to="/admin/students" className={navLinkClass('/admin/students')} onClick={closeMobile}>
+                      Estudiantes
+                    </Link>
+                    <Link
+                      to="/admin/upload"
+                      className={`button button-ghost nav-link ${['/admin/upload', '/admin/content'].includes(location.pathname) ? 'nav-active' : ''}`}
+                      onClick={closeMobile}
+                    >
+                      Contenido
+                    </Link>
                   </>
                 )}
               </div>
-              <span className="user-role role-badge">
-                {user.role === 'admin'
-                  ? 'Instructor'
-                  : user.plan_tier
-                    ? planLabel(user.plan_tier)
-                    : user.role === 'premium'
-                      ? 'Alumno premium'
-                      : 'Estudiante'}
-              </span>
+
+              <div className="navbar-mobile-account">
+                <Link to="/profile" className="button button-ghost" onClick={closeMobile}>Mi perfil</Link>
+                <Link to="/profile?tab=security" className="button button-ghost" onClick={closeMobile}>Seguridad</Link>
+                <Link to="/profile?tab=subscription" className="button button-ghost" onClick={closeMobile}>Suscripción</Link>
+                <button type="button" className="button button-secondary" onClick={() => { handleLogout(); closeMobile(); }}>
+                  Cerrar sesión
+                </button>
+              </div>
+
+              <span className="user-role role-badge navbar-role-desktop">{roleLabel}</span>
             </div>
           ) : (
             <div className="navbar-links">
@@ -72,42 +126,46 @@ export const Navbar = () => {
           {user && (
             <>
               <Link to="/profile" className="navbar-avatar-link navbar-avatar-desktop" title="Mi perfil" onClick={closeMobile}>
-                {avatarSrc ? (
-                  <img src={avatarSrc} alt="Foto de perfil" className="navbar-avatar" loading="lazy" decoding="async" width={38} height={38} />
-                ) : (
-                  <span className="navbar-avatar navbar-avatar-placeholder">
-                    {user.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                )}
+                <UserAvatar
+                  name={user.name}
+                  avatarUrl={user.avatar_url}
+                  size="sm"
+                  className="navbar-avatar"
+                  placeholderClassName="navbar-avatar navbar-avatar-placeholder"
+                />
               </Link>
 
-              <div className="settings-dropdown-container">
+              <div className="settings-dropdown-container navbar-settings-desktop">
                 <button
+                  type="button"
                   className="button button-settings"
-                  title="Configuración"
-                  aria-label="Configuración"
-                  onClick={() => setSettingsOpen(!settingsOpen)}
+                  title="Cuenta"
+                  aria-label="Menú de cuenta"
+                  aria-expanded={settingsOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setSettingsOpen((open) => !open)}
                 >
                   <UIIcon name="gear" size={18} />
                 </button>
                 {settingsOpen && (
-                  <div className="settings-dropdown">
-                    <Link to="/profile" className="settings-option" onClick={() => { setSettingsOpen(false); closeMobile(); }}>
+                  <div className="settings-dropdown" role="menu">
+                    <Link to="/profile" className="settings-option" role="menuitem" onClick={() => setSettingsOpen(false)}>
                       <UIIcon name="user" size={16} /> Mi perfil
                     </Link>
-                    <Link to="/profile?tab=security" className="settings-option" onClick={() => { setSettingsOpen(false); closeMobile(); }}>
+                    <Link to="/profile?tab=security" className="settings-option" role="menuitem" onClick={() => setSettingsOpen(false)}>
                       <UIIcon name="lock" size={16} /> Seguridad
                     </Link>
-                    <Link to="/profile?tab=subscription" className="settings-option" onClick={() => { setSettingsOpen(false); closeMobile(); }}>
+                    <Link to="/profile?tab=subscription" className="settings-option" role="menuitem" onClick={() => setSettingsOpen(false)}>
                       <UIIcon name="star" size={16} /> Suscripción
                     </Link>
-                    <div className="settings-divider"></div>
+                    <div className="settings-divider" />
                     <button
+                      type="button"
                       className="settings-option logout-option"
+                      role="menuitem"
                       onClick={() => {
                         handleLogout();
                         setSettingsOpen(false);
-                        closeMobile();
                       }}
                     >
                       <UIIcon name="logout" size={16} /> Cerrar sesión
@@ -123,12 +181,22 @@ export const Navbar = () => {
             className="navbar-toggle"
             aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
             aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-controls="primary-navigation"
+            onClick={() => setMobileOpen((open) => !open)}
           >
             <UIIcon name={mobileOpen ? 'close' : 'menu'} size={20} />
           </button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <button
+          type="button"
+          className="navbar-overlay"
+          aria-label="Cerrar menú"
+          onClick={closeMobile}
+        />
+      )}
     </nav>
   );
 };

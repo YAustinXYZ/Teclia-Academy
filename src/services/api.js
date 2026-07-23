@@ -69,7 +69,7 @@ export const authService = {
     api.post('/auth/logout'),
   getCurrentUser: () =>
     api.get('/auth/me'),
-  updateProfile: (name, avatar) => {
+  updateProfile: (name, avatar, options = {}) => {
     if (avatar instanceof FormData) {
       return api.patch('/auth/profile', avatar, {
         headers: {
@@ -81,6 +81,7 @@ export const authService = {
     const payload = {};
     if (name) payload.name = name;
     if (avatar) payload.avatarUrl = avatar;
+    if (options.removeAvatar) payload.removeAvatar = true;
     return api.patch('/auth/profile', payload);
   },
   changePassword: (currentPassword, newPassword) =>

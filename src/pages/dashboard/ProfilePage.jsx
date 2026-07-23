@@ -2,12 +2,19 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { authService } from '../../services/api.js';
-import { resolveAvatar, storeAvatar } from '../../utils/avatar.js';
+import { resolveAvatar, storeAvatar, clearStoredAvatar } from '../../utils/avatar.js';
 import { validatePassword, PASSWORD_HINT } from '../../utils/password.js';
 import { planLabel } from '../../utils/plans.js';
+import {
+  loadProfilePrefs,
+  saveProfilePrefs,
+  loadRecentActivity,
+  validateAvatarFile,
+} from '../../utils/profilePrefs.js';
 import StripeCardForm from '../../components/payments/StripeCardForm.jsx';
 import { CheckoutFlow } from '../../components/payments/CheckoutFlow.jsx';
 import { UIIcon } from '../../components/common/Icons.jsx';
+import { useToast } from '../../context/ToastContext.jsx';
 
 const vipPlans = [
   {
@@ -29,6 +36,8 @@ const vipPlans = [
     details: 'Para quienes quieren una experiencia VIP completa con seguimiento premium y soporte prioritario.',
   },
 ];
+
+const PROFILE_TABS = ['general', 'security', 'subscription', 'preferences', 'activity', 'billing'];
 
 const mapProfileError = (err) => {
   if (!err.response) {
@@ -54,12 +63,15 @@ const mapPasswordError = (err) => {
 
 export const ProfilePage = () => {
   const { user, updateProfile } = useAuth();
-  const [searchParams] = useSearchParams();
+  const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('general');
   const [name, setName] = useState(user?.name || '');
 
   const [avatarPreview, setAvatarPreview] = useState(() => resolveAvatar(user?.avatar_url || ''));
   const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  const [avatarError, setAvatarError] = useState(null);
   const [profileMessage, setProfileMessage] = useState(null);
   const [profileError, setProfileError] = useState(null);
   const [nameFieldError, setNameFieldError] = useState(null);
@@ -70,18 +82,72 @@ export const ProfilePage = () => {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
   const [activePlan, setActivePlan] = useState(null);
+  const [prefs, setPrefs] = useState(() => loadProfilePrefs(user?.id));
+  const [prefsSaved, setPrefsSaved] = useState(false);
+  const [recentActivity, setRecentActivity] = useState(() => loadRecentActivity(user?.id));
 
   useEffect(() => {
     setName(user?.name || '');
     setAvatarPreview(resolveAvatar(user?.avatar_url || ''));
     setAvatarFile(null);
+    setAvatarBroken(false);
+    setAvatarError(null);
+    setPrefs(loadProfilePrefs(user?.id));
+    setRecentActivity(loadRecentActivity(user?.id));
   }, [user]);
 
+  const selectTab = (tab) => {
+    setActiveTab(tab);
+    setSearchParams(tab === 'general' ? {} : { tab }, { replace: true });
+  };
+
   const handleAvatarUpload = (event) => {
-    const file = event.target.files[0];
+    const file = event.target.files?.[0];
+    event.target.value = '';
     if (!file) return;
+
+    const validationError = validateAvatarFile(file);
+    if (validationError) {
+      setAvatarError(validationError);
+      setAvatarFile(null);
+      toast.error(validationError);
+      return;
+    }
+
+    setAvatarError(null);
     setAvatarFile(file);
+    setAvatarBroken(false);
     setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveAvatar = async () => {
+    setProfileMessage(null);
+    setProfileError(null);
+    setProfileSaving(true);
+    try {
+      await updateProfile(name, { removeAvatar: true });
+      setAvatarPreview('');
+      setAvatarFile(null);
+      setAvatarBroken(false);
+      clearStoredAvatar(user?.id);
+      toast.success('Foto de perfil eliminada.');
+      setProfileMessage('Foto de perfil eliminada.');
+      setTimeout(() => setProfileMessage(null), 3000);
+    } catch (err) {
+      const { general } = mapProfileError(err);
+      const message = general || 'No se pudo eliminar la foto.';
+      setProfileError(message);
+      toast.error(message);
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const formatMemberSince = (value) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
   const handleProfileSave = async (e) => {
@@ -89,30 +155,42 @@ export const ProfilePage = () => {
     setProfileMessage(null);
     setProfileError(null);
     setNameFieldError(null);
+    setAvatarError(null);
     setProfileSaving(true);
 
     try {
       let payload = undefined;
       if (avatarFile) {
+        const validationError = validateAvatarFile(avatarFile);
+        if (validationError) {
+          setAvatarError(validationError);
+          toast.error(validationError);
+          return;
+        }
         payload = new FormData();
         payload.append('name', name);
         payload.append('avatar', avatarFile);
       }
       const res = await updateProfile(name, payload);
       setProfileMessage('Perfil actualizado correctamente.');
+      toast.success('Perfil actualizado correctamente.');
       const savedUrl = res.user.avatar_url || '';
       if (savedUrl) {
         storeAvatar(res.user.id, savedUrl);
+      } else {
+        clearStoredAvatar(res.user.id);
       }
-      setAvatarPreview(resolveAvatar(savedUrl) || avatarPreview);
+      setAvatarPreview(resolveAvatar(savedUrl) || '');
       setAvatarFile(null);
       setTimeout(() => setProfileMessage(null), 3000);
     } catch (err) {
       const { general, field } = mapProfileError(err);
       if (field) {
         setNameFieldError(field);
+        toast.error(field);
       } else {
         setProfileError(general);
+        toast.error(general);
       }
     } finally {
       setProfileSaving(false);
@@ -129,9 +207,9 @@ export const ProfilePage = () => {
       return;
     }
 
-    const passwordError = validatePassword(changePassword.new);
-    if (passwordError) {
-      setPasswordError(passwordError);
+    const passwordValidation = validatePassword(changePassword.new);
+    if (passwordValidation) {
+      setPasswordError(passwordValidation);
       return;
     }
 
@@ -139,13 +217,24 @@ export const ProfilePage = () => {
       setPasswordSaving(true);
       await authService.changePassword(changePassword.current, changePassword.new);
       setPasswordSuccess(true);
+      toast.success('Contraseña actualizada correctamente.');
       setChangePassword({ current: '', new: '', confirm: '' });
       setTimeout(() => setPasswordSuccess(false), 3000);
     } catch (err) {
-      setPasswordError(mapPasswordError(err));
+      const message = mapPasswordError(err);
+      setPasswordError(message);
+      toast.error(message);
     } finally {
       setPasswordSaving(false);
     }
+  };
+
+  const handleSavePrefs = (e) => {
+    e.preventDefault();
+    saveProfilePrefs(user?.id, prefs);
+    setPrefsSaved(true);
+    toast.success('Preferencias guardadas en este dispositivo.');
+    setTimeout(() => setPrefsSaved(false), 2500);
   };
 
   const roleLabel = user?.role === 'admin'
@@ -158,7 +247,7 @@ export const ProfilePage = () => {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'security' || tab === 'subscription' || tab === 'general') {
+    if (PROFILE_TABS.includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -171,20 +260,45 @@ export const ProfilePage = () => {
           <p>Administra tu cuenta, seguridad y preferencias.</p>
         </div>
 
-        <div className="profile-tabs">
-          <button className={`profile-tab ${activeTab === 'general' ? 'active' : ''}`} onClick={() => setActiveTab('general')}>
-            General
-          </button>
-          <button className={`profile-tab ${activeTab === 'security' ? 'active' : ''}`} onClick={() => setActiveTab('security')}>
-            Seguridad
-          </button>
-          <button className={`profile-tab ${activeTab === 'subscription' ? 'active' : ''}`} onClick={() => setActiveTab('subscription')}>
-            Suscripción
-          </button>
+        <div className="profile-tabs" role="tablist" aria-label="Secciones del perfil">
+          {[
+            ['general', 'General'],
+            ['security', 'Seguridad'],
+            ['subscription', 'Suscripción'],
+            ['preferences', 'Preferencias'],
+            ['activity', 'Actividad'],
+            ['billing', 'Facturación'],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === id}
+              className={`profile-tab ${activeTab === id ? 'active' : ''}`}
+              onClick={() => selectTab(id)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {activeTab === 'general' && (
           <div className="profile-content">
+            <div className="profile-summary-grid">
+              <div className="profile-summary-card">
+                <span className="profile-summary-label">Plan actual</span>
+                <strong className="profile-summary-value role-badge">{roleLabel}</strong>
+              </div>
+              <div className="profile-summary-card">
+                <span className="profile-summary-label">Miembro desde</span>
+                <strong className="profile-summary-value">{formatMemberSince(user?.created_at)}</strong>
+              </div>
+              <div className="profile-summary-card">
+                <span className="profile-summary-label">Correo</span>
+                <strong className="profile-summary-value">{user?.email}</strong>
+              </div>
+            </div>
+
             <div className="profile-section">
               <h2>Información general</h2>
               <div className="profile-card">
@@ -192,16 +306,16 @@ export const ProfilePage = () => {
                   <div className="profile-row">
                     <div className="avatar-preview-card">
                       <div className="avatar-preview-shell">
-                        {avatarPreview ? (
+                        {avatarPreview && !avatarBroken ? (
                           <img
                             src={avatarPreview}
-                            alt="Avatar de perfil"
+                            alt={user?.name ? `Foto de perfil de ${user.name}` : 'Avatar de perfil'}
                             className="profile-avatar-image"
                             loading="lazy"
                             decoding="async"
                             width={128}
                             height={128}
-                            onError={() => setAvatarPreview('')}
+                            onError={() => setAvatarBroken(true)}
                           />
                         ) : (
                           <div className="avatar-placeholder">{user?.name?.slice(0, 1) || 'T'}</div>
@@ -209,14 +323,26 @@ export const ProfilePage = () => {
                       </div>
                       <label className="avatar-upload-label">
                         <span className="button button-secondary">Seleccionar imagen</span>
-                        <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} />
                       </label>
-                      {avatarFile && <div className="avatar-selected-tag">Imagen elegida lista para subir</div>}
+                      <p className="avatar-help-text">JPEG, PNG o WebP · máx. 2 MB</p>
+                      {(avatarPreview || user?.avatar_url) && (
+                        <button
+                          type="button"
+                          className="button button-ghost profile-remove-avatar"
+                          onClick={handleRemoveAvatar}
+                          disabled={profileSaving}
+                        >
+                          Quitar foto
+                        </button>
+                      )}
+                      {avatarFile && <div className="avatar-selected-tag">Vista previa lista — pulsa Guardar</div>}
+                      {avatarError && <p className="field-error">{avatarError}</p>}
                     </div>
                     <div className="profile-fields">
                       <div className="profile-field">
-                        <label>Nombre</label>
-                        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" />
+                        <label htmlFor="profile-name">Nombre</label>
+                        <input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" />
                         {nameFieldError && <p className="field-error">{nameFieldError}</p>}
                       </div>
                       <div className="profile-field">
@@ -226,6 +352,10 @@ export const ProfilePage = () => {
                       <div className="profile-field">
                         <label>Rol</label>
                         <p className="profile-value role-badge">{roleLabel}</p>
+                      </div>
+                      <div className="profile-field">
+                        <label>Última actualización</label>
+                        <p className="profile-value">{formatMemberSince(user?.updated_at || user?.created_at)}</p>
                       </div>
                     </div>
                   </div>
@@ -355,6 +485,127 @@ export const ProfilePage = () => {
                     />
                   )}
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'preferences' && (
+          <div className="profile-content">
+            <div className="profile-section">
+              <h2>Preferencias</h2>
+              <div className="profile-card">
+                <form onSubmit={handleSavePrefs} className="profile-form prefs-form">
+                  <div className="profile-field">
+                    <label htmlFor="pref-language">Idioma</label>
+                    <select
+                      id="pref-language"
+                      className="filter-select"
+                      value={prefs.language}
+                      onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value }))}
+                    >
+                      <option value="es">Español</option>
+                      <option value="en">English</option>
+                    </select>
+                  </div>
+                  <label className="prefs-check">
+                    <input
+                      type="checkbox"
+                      checked={prefs.emailNotifications}
+                      onChange={(e) => setPrefs((p) => ({ ...p, emailNotifications: e.target.checked }))}
+                    />
+                    Recibir avisos por email (clases, progreso)
+                  </label>
+                  <label className="prefs-check">
+                    <input
+                      type="checkbox"
+                      checked={prefs.marketingEmails}
+                      onChange={(e) => setPrefs((p) => ({ ...p, marketingEmails: e.target.checked }))}
+                    />
+                    Recibir novedades y ofertas de Teclia
+                  </label>
+                  <div className="profile-field">
+                    <label htmlFor="pref-visibility">Privacidad del perfil</label>
+                    <select
+                      id="pref-visibility"
+                      className="filter-select"
+                      value={prefs.profileVisibility}
+                      onChange={(e) => setPrefs((p) => ({ ...p, profileVisibility: e.target.value }))}
+                    >
+                      <option value="private">Privado (solo tú e instructores)</option>
+                      <option value="community">Visible en comunidad</option>
+                    </select>
+                  </div>
+                  {prefsSaved && <div className="success-message">Preferencias guardadas.</div>}
+                  <button type="submit" className="button button-primary">Guardar preferencias</button>
+                  <p className="field-hint">Se guardan en este dispositivo por ahora (sin API adicional).</p>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'activity' && (
+          <div className="profile-content">
+            <div className="profile-section">
+              <h2>Actividad reciente</h2>
+              <div className="profile-card">
+                <div className="profile-summary-grid activity-plan-grid">
+                  <div className="profile-summary-card">
+                    <span className="profile-summary-label">Plan</span>
+                    <strong className="profile-summary-value">{roleLabel}</strong>
+                  </div>
+                  <div className="profile-summary-card">
+                    <span className="profile-summary-label">Acceso</span>
+                    <strong className="profile-summary-value">
+                      {user?.plan_tier ? `Contenido ${planLabel(user.plan_tier)}` : 'Recursos gratuitos'}
+                    </strong>
+                  </div>
+                </div>
+                {recentActivity.length === 0 ? (
+                  <div className="empty-state compact">
+                    <p>Aún no hay recursos vistos en este dispositivo.</p>
+                    <p className="field-hint">Cuando abras lecciones desde Recursos, aparecerán aquí.</p>
+                  </div>
+                ) : (
+                  <ul className="activity-list">
+                    {recentActivity.map((item) => (
+                      <li key={`${item.id}-${item.viewedAt}`}>
+                        <strong>{item.title || `Recurso #${item.id}`}</strong>
+                        <span>{item.type || 'contenido'}</span>
+                        <time dateTime={item.viewedAt}>
+                          {item.viewedAt ? new Date(item.viewedAt).toLocaleString('es-MX') : '—'}
+                        </time>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'billing' && (
+          <div className="profile-content">
+            <div className="profile-section">
+              <h2>Facturación</h2>
+              <div className="profile-card">
+                <p className="field-hint">
+                  Historial de pagos Stripe estará disponible cuando el endpoint de facturación esté activo.
+                </p>
+                <div className="profile-summary-grid">
+                  <div className="profile-summary-card">
+                    <span className="profile-summary-label">Plan facturado</span>
+                    <strong className="profile-summary-value">{user?.plan_tier ? planLabel(user.plan_tier) : 'Free'}</strong>
+                  </div>
+                  <div className="profile-summary-card">
+                    <span className="profile-summary-label">Método de pago</span>
+                    <strong className="profile-summary-value">Gestionar en Suscripción</strong>
+                  </div>
+                </div>
+                <button type="button" className="button button-secondary" onClick={() => selectTab('subscription')}>
+                  Ir a suscripción
+                </button>
               </div>
             </div>
           </div>

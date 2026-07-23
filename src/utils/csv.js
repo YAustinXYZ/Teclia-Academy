@@ -1,6 +1,6 @@
 export const exportStudentsToCsv = (students, filename = 'estudiantes.csv') => {
   if (!students || students.length === 0) return;
-  const headers = ['ID', 'Nombre', 'Email', 'Usuario', 'Estado', 'Plan', 'Fecha de registro'];
+  const headers = ['ID', 'Nombre', 'Email', 'Usuario', 'Estado', 'Plan', 'Avatar URL', 'Fecha de registro'];
   const rows = students.map((s) => [
     s.id,
     `"${(s.name || '').replace(/"/g, '""')}"`,
@@ -8,6 +8,7 @@ export const exportStudentsToCsv = (students, filename = 'estudiantes.csv') => {
     s.username || '',
     s.status || 'active',
     s.plan_tier || 'free',
+    `"${(s.avatar_url || '').replace(/"/g, '""')}"`,
     s.created_at ? new Date(s.created_at).toLocaleDateString('es-CR') : '',
   ]);
   const bom = '\uFEFF';

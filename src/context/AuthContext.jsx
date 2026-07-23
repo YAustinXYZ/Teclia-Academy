@@ -6,7 +6,7 @@ import {
   registerSessionExpiredToastHandler,
 } from '../utils/authSession.js';
 import { clearStoredToken, getStoredToken, isTokenExpired, setStoredToken, generateCsrfToken } from '../utils/jwt.js';
-import { getStoredAvatar, storeAvatar } from '../utils/avatar.js';
+import { getStoredAvatar, storeAvatar, clearStoredAvatar } from '../utils/avatar.js';
 
 const AuthContext = createContext();
 
@@ -158,13 +158,18 @@ export const AuthProvider = ({ children, onSessionExpiredToast }) => {
     }
   };
 
-  const updateProfile = async (name, avatarUrl) => {
+  const updateProfile = async (name, avatarOrOptions, options = {}) => {
     try {
       setError(null);
-      const res = await authService.updateProfile(name, avatarUrl);
+      const isOptionsObject = avatarOrOptions && typeof avatarOrOptions === 'object' && !(avatarOrOptions instanceof FormData);
+      const avatarPayload = isOptionsObject ? undefined : avatarOrOptions;
+      const profileOptions = isOptionsObject ? avatarOrOptions : options;
+      const res = await authService.updateProfile(name, avatarPayload, profileOptions);
       const enriched = enrichUser(res.data.user);
       if (enriched?.avatar_url) {
         storeAvatar(enriched.id, enriched.avatar_url);
+      } else if (enriched?.id) {
+        clearStoredAvatar(enriched.id);
       }
       setUser(enriched);
       return res.data;

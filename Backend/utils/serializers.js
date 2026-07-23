@@ -1,10 +1,12 @@
+import { resolveAvatarUrl } from './avatarUrl.js';
+
 export const formatUser = (user) => ({
   id: user.id,
   email: user.email,
   name: user.name,
   role: user.role,
   plan_tier: user.planTier ?? null,
-  avatar_url: user.avatarUrl ?? null,
+  avatar_url: resolveAvatarUrl(user.avatarUrl),
 });
 
 export const formatUserWithCreatedAt = (user) => ({

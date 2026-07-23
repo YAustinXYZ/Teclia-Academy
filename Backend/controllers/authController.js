@@ -17,23 +17,9 @@ import {
 
 const normalizeEmail = (email) => email.trim().toLowerCase();
 
-const resolveAvatarUrl = (avatarUrl) => {
-  if (!avatarUrl) return null;
-
-  const normalized = avatarUrl.startsWith("/uploads/")
-    ? avatarUrl.replace(/^\/uploads\//, "")
-    : avatarUrl;
-
-  if (avatarUrl.startsWith("http")) {
-    return avatarUrl;
-  }
-
-  return storage.resolveUrl(normalized);
-};
-
 const formatUserResponse = (user) => ({
   ...formatUser(user),
-  avatar_url: resolveAvatarUrl(user.avatarUrl),
+  created_at: user.createdAt ?? null,
 });
 
 const removeFileFromStorageOrLocal = async (fileUrl) => {
@@ -208,10 +194,12 @@ export const getMe = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, avatarUrl } = req.body;
+    const { name, avatarUrl, removeAvatar } = req.body;
     const avatarFile = req.file;
+    const shouldRemoveAvatar =
+      removeAvatar === true || removeAvatar === "true" || removeAvatar === "1";
 
-    if (!name && !avatarUrl && !avatarFile) {
+    if (!name && !avatarUrl && !avatarFile && !shouldRemoveAvatar) {
       return res.status(400).json({ error: "No profile information provided" });
     }
 
@@ -232,6 +220,9 @@ export const updateProfile = async (req, res) => {
     if (avatarFile) {
       await removeFileFromStorageOrLocal(currentUser.avatarUrl);
       data.avatarUrl = await storage.upload(avatarFile, "avatars");
+    } else if (shouldRemoveAvatar) {
+      await removeFileFromStorageOrLocal(currentUser.avatarUrl);
+      data.avatarUrl = null;
     } else if (avatarUrl) {
       data.avatarUrl = avatarUrl;
     }

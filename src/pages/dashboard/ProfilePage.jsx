@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { authService } from '../../services/api.js';
 import { resolveAvatar, storeAvatar, clearStoredAvatar } from '../../utils/avatar.js';
-import { validatePassword, PASSWORD_HINT } from '../../utils/password.js';
+import { validatePassword, getPasswordHint } from '../../utils/password.js';
 import { planLabel } from '../../utils/plans.js';
 import {
   loadProfilePrefs,
@@ -215,11 +215,11 @@ export const ProfilePage = () => {
     setPasswordSuccess(false);
 
     if (changePassword.new !== changePassword.confirm) {
-      setPasswordError('Las contraseñas no coinciden');
+      setPasswordError(t('profile.passwordsMismatch'));
       return;
     }
 
-    const passwordValidation = validatePassword(changePassword.new);
+    const passwordValidation = validatePassword(changePassword.new, t);
     if (passwordValidation) {
       setPasswordError(passwordValidation);
       return;
@@ -258,7 +258,7 @@ export const ProfilePage = () => {
   const roleLabel = user?.role === 'admin'
     ? t('profile.role.instructor')
     : user?.plan_tier
-      ? planLabel(user.plan_tier)
+      ? planLabel(user.plan_tier, t)
       : user?.role === 'premium'
         ? t('profile.role.premium')
         : t('profile.role.student');
@@ -407,7 +407,7 @@ export const ProfilePage = () => {
                         required
                         placeholder="Ingresa tu contraseña actual"
                       />
-                      <button type="button" className="password-toggle" aria-label={showPassword.current ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => setShowPassword((prev) => ({ ...prev, current: !prev.current }))}>
+                      <button type="button" className="password-toggle" aria-label={showPassword.current ? t('common.hidePassword') : t('common.showPassword')} onClick={() => setShowPassword((prev) => ({ ...prev, current: !prev.current }))}>
                         <UIIcon name={showPassword.current ? 'eyeOff' : 'eye'} size={18} />
                       </button>
                     </div>
@@ -423,11 +423,11 @@ export const ProfilePage = () => {
                         required
                         placeholder="Ingresa tu nueva contraseña"
                       />
-                      <button type="button" className="password-toggle" aria-label={showPassword.new ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => setShowPassword((prev) => ({ ...prev, new: !prev.new }))}>
+                      <button type="button" className="password-toggle" aria-label={showPassword.new ? t('common.hidePassword') : t('common.showPassword')} onClick={() => setShowPassword((prev) => ({ ...prev, new: !prev.new }))}>
                         <UIIcon name={showPassword.new ? 'eyeOff' : 'eye'} size={18} />
                       </button>
                     </div>
-                    <p className="field-hint">{PASSWORD_HINT}</p>
+                    <p className="field-hint">{getPasswordHint(t)}</p>
                   </div>
                   <div className="form-group password-group">
                     <label htmlFor="confirm">Confirmar nueva contraseña</label>
@@ -440,7 +440,7 @@ export const ProfilePage = () => {
                         required
                         placeholder="Confirma tu nueva contraseña"
                       />
-                      <button type="button" className="password-toggle" aria-label={showPassword.confirm ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => setShowPassword((prev) => ({ ...prev, confirm: !prev.confirm }))}>
+                      <button type="button" className="password-toggle" aria-label={showPassword.confirm ? t('common.hidePassword') : t('common.showPassword')} onClick={() => setShowPassword((prev) => ({ ...prev, confirm: !prev.confirm }))}>
                         <UIIcon name={showPassword.confirm ? 'eyeOff' : 'eye'} size={18} />
                       </button>
                     </div>
@@ -471,7 +471,7 @@ export const ProfilePage = () => {
                         className="button button-outline"
                         onClick={() => setActivePlan(activePlan === plan.label ? null : plan.label)}
                       >
-                        {activePlan === plan.label ? 'Ocultar' : 'Ver más'}
+                        {activePlan === plan.label ? t('profile.hide') : t('profile.showMore')}
                       </button>
                     </div>
                     {activePlan === plan.label && (
@@ -613,7 +613,7 @@ export const ProfilePage = () => {
                   <div className="profile-summary-card">
                     <span className="profile-summary-label">{t('profile.access')}</span>
                     <strong className="profile-summary-value">
-                      {user?.plan_tier ? planLabel(user.plan_tier) : t('profile.freeAccess')}
+                      {user?.plan_tier ? planLabel(user.plan_tier, t) : t('profile.freeAccess')}
                     </strong>
                   </div>
                 </div>
@@ -649,7 +649,7 @@ export const ProfilePage = () => {
                 <div className="profile-summary-grid">
                   <div className="profile-summary-card">
                     <span className="profile-summary-label">{t('profile.billedPlan')}</span>
-                    <strong className="profile-summary-value">{user?.plan_tier ? planLabel(user.plan_tier) : 'Free'}</strong>
+                    <strong className="profile-summary-value">{user?.plan_tier ? planLabel(user.plan_tier, t) : t('plan.free')}</strong>
                   </div>
                   <div className="profile-summary-card">
                     <span className="profile-summary-label">{t('profile.paymentMethod')}</span>

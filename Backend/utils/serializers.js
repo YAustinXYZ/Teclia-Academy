@@ -1,16 +1,16 @@
 import { resolveAvatarUrl } from './avatarUrl.js';
 
-export const formatUser = (user) => ({
+export const formatUser = (user, { avatarUrl } = {}) => ({
   id: user.id,
   email: user.email,
   name: user.name,
   role: user.role,
   plan_tier: user.planTier ?? null,
-  avatar_url: resolveAvatarUrl(user.avatarUrl),
+  avatar_url: avatarUrl !== undefined ? avatarUrl : resolveAvatarUrl(user.avatarUrl),
 });
 
-export const formatUserWithCreatedAt = (user) => ({
-  ...formatUser(user),
+export const formatUserWithCreatedAt = (user, options) => ({
+  ...formatUser(user, options),
   created_at: user.createdAt ?? null,
 });
 

@@ -93,7 +93,7 @@ export const PreferencesProvider = ({ children }) => {
     }
   }, [user?.id]);
 
-  const t = useCallback((key) => translate(language, key), [language]);
+  const t = useCallback((key, vars) => translate(language, key, vars), [language]);
 
   const value = useMemo(
     () => ({ language, theme, setLanguage, setTheme, t }),

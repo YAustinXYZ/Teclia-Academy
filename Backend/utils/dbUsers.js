@@ -1,5 +1,6 @@
 import prisma from './prismaClient.js';
 import { formatUserWithCreatedAt } from './serializers.js';
+import { resolveAvatarUrlAsync } from './avatarUrl.js';
 
 export const listNonAdminUsers = async () => {
   const users = await prisma.user.findMany({
@@ -7,5 +8,11 @@ export const listNonAdminUsers = async () => {
     orderBy: { id: 'desc' },
   });
 
-  return users.map(formatUserWithCreatedAt);
+  return Promise.all(
+    users.map(async (user) =>
+      formatUserWithCreatedAt(user, {
+        avatarUrl: await resolveAvatarUrlAsync(user.avatarUrl),
+      }),
+    ),
+  );
 };

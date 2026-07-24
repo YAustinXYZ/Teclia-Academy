@@ -5,6 +5,7 @@ import prisma from "../utils/prismaClient.js";
 import { validatePassword } from "../utils/password.js";
 import { listNonAdminUsers } from "../utils/dbUsers.js";
 import { formatUser, formatUserWithCreatedAt } from "../utils/serializers.js";
+import { resolveAvatarUrlAsync } from "../utils/avatarUrl.js";
 import storage from "../storage/index.js";
 import {
   REFRESH_TOKEN_EXPIRED,
@@ -17,8 +18,10 @@ import {
 
 const normalizeEmail = (email) => email.trim().toLowerCase();
 
-const formatUserResponse = (user) => ({
-  ...formatUser(user),
+const formatUserResponse = async (user) => ({
+  ...formatUser(user, {
+    avatarUrl: await resolveAvatarUrlAsync(user.avatarUrl),
+  }),
   created_at: user.createdAt ?? null,
 });
 
@@ -128,7 +131,7 @@ export const signup = async (req, res) => {
       message: "User created successfully",
       token,
       refreshToken,
-      user: formatUserResponse(user),
+      user: await formatUserResponse(user),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -169,7 +172,7 @@ export const login = async (req, res) => {
       message: "Login successful",
       token,
       refreshToken,
-      user: formatUserResponse(user),
+      user: await formatUserResponse(user),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -186,7 +189,7 @@ export const getMe = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json({ user: formatUserResponse(user) });
+    res.json({ user: await formatUserResponse(user) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -234,7 +237,7 @@ export const updateProfile = async (req, res) => {
 
     res.json({
       message: "Profile updated successfully",
-      user: formatUserResponse(user),
+      user: await formatUserResponse(user),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -506,7 +509,9 @@ export const updateStudentPlan = async (req, res) => {
       message: normalizedPlan
         ? `Plan ${normalizedPlan} asignado correctamente`
         : "Plan removido correctamente",
-      student: formatUserWithCreatedAt(student),
+      student: formatUserWithCreatedAt(student, {
+        avatarUrl: await resolveAvatarUrlAsync(student.avatarUrl),
+      }),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

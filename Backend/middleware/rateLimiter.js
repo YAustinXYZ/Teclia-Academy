@@ -27,5 +27,6 @@ export const globalLimiter = createLimiter({
 
 export const authLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  // Local/dev: avoid locking yourself out while testing login.
+  max: process.env.NODE_ENV === 'production' ? 10 : 200,
 });

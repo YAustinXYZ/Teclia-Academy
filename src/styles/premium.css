@@ -4,34 +4,46 @@
    Loaded after styles.css so it can refine the existing look.
    ===================================================================== */
 
-:root {
-  /* Core palette */
+:root,
+html[data-theme='dark'] {
+  /* Core palette — dark (high contrast) */
   --background: #060606;
-  --background-elevated: #0d0d0f;
-  --foreground: #f5f3ee;
-  --card: rgba(255, 255, 255, 0.035);
-  --card-strong: rgba(255, 255, 255, 0.06);
-  --muted: #a7a29a;
-  --muted-strong: #cbc7bf;
-  --border: rgba(255, 255, 255, 0.09);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --ring: rgba(215, 183, 97, 0.55);
+  --background-elevated: #121214;
+  --foreground: #f7f5f0;
+  --card: rgba(255, 255, 255, 0.06);
+  --card-strong: rgba(255, 255, 255, 0.1);
+  --muted: #c2bbb0;
+  --muted-strong: #ebe4d8;
+  --border: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.28);
+  --ring: rgba(215, 183, 97, 0.6);
+
+  /* Keep styles.css tokens in sync */
+  --bg: #060606;
+  --text: #f7f5f0;
+  --text-muted: #c2bbb0;
+  --surface: rgba(255, 255, 255, 0.07);
+  --surface-strong: rgba(255, 255, 255, 0.12);
+  --surface-soft: rgba(255, 255, 255, 0.04);
+  --navbar-bg: rgba(10, 10, 12, 0.88);
+  --card-bg: #141416;
 
   /* Gold accent scale */
   --accent: #d7b761;
-  --accent-bright: #ecd18a;
+  --accent-bright: #f0d78a;
   --accent-deep: #b8922a;
-  --accent-muted: rgba(215, 183, 97, 0.14);
-  --accent-soft: rgba(215, 183, 97, 0.08);
+  --accent-muted: rgba(215, 183, 97, 0.18);
+  --accent-soft: rgba(215, 183, 97, 0.1);
   --gradient-gold: linear-gradient(135deg, #ecd18a 0%, #d7b761 45%, #b8922a 100%);
+  --accent-on: #1a1406;
 
   /* Semantic */
   --success: #4ade80;
-  --success-soft: rgba(74, 222, 128, 0.14);
+  --success-soft: rgba(74, 222, 128, 0.16);
   --warning: #facc15;
-  --warning-soft: rgba(250, 204, 21, 0.14);
+  --warning-soft: rgba(250, 204, 21, 0.16);
   --destructive: #f87171;
-  --destructive-soft: rgba(248, 113, 113, 0.14);
+  --destructive-soft: rgba(248, 113, 113, 0.16);
 
   /* Elevation */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
@@ -50,6 +62,60 @@
   --dur-fast: 160ms;
   --dur: 260ms;
   --dur-slow: 520ms;
+
+  --body-gradient:
+    radial-gradient(circle at top, rgba(201, 168, 76, 0.18), transparent 18%),
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.06), transparent 8%),
+    radial-gradient(circle at 82% 10%, rgba(255, 255, 255, 0.04), transparent 12%),
+    #060606;
+}
+
+/* Light theme — readable ink on warm paper */
+html[data-theme='light'] {
+  --background: #f3efe6;
+  --background-elevated: #ffffff;
+  --foreground: #14110d;
+  --card: #ffffff;
+  --card-strong: #fffdf8;
+  --muted: #40382f;
+  --muted-strong: #1f1b15;
+  --border: rgba(20, 17, 13, 0.18);
+  --border-strong: rgba(20, 17, 13, 0.3);
+  --ring: rgba(122, 97, 32, 0.45);
+
+  --bg: #f3efe6;
+  --text: #14110d;
+  --text-muted: #5a5248;
+  --surface: rgba(20, 17, 13, 0.05);
+  --surface-strong: rgba(20, 17, 13, 0.09);
+  --surface-soft: #fffdf8;
+  --navbar-bg: rgba(255, 252, 246, 0.94);
+  --card-bg: #ffffff;
+
+  --accent: #6f561c;
+  --accent-bright: #7a6120;
+  --accent-deep: #5a4616;
+  --accent-muted: rgba(122, 97, 32, 0.12);
+  --accent-soft: rgba(122, 97, 32, 0.07);
+  --gradient-gold: linear-gradient(135deg, #c9a84c 0%, #a8842e 50%, #7a6120 100%);
+  --accent-on: #fffdf8;
+
+  --success: #1f7a3f;
+  --success-soft: rgba(31, 122, 63, 0.12);
+  --warning: #8a6500;
+  --warning-soft: rgba(138, 101, 0, 0.12);
+  --destructive: #b42318;
+  --destructive-soft: rgba(180, 35, 24, 0.1);
+
+  --shadow-sm: 0 2px 8px rgba(40, 30, 10, 0.08);
+  --shadow-md: 0 12px 28px rgba(40, 30, 10, 0.1);
+  --shadow-lg: 0 24px 48px rgba(40, 30, 10, 0.14);
+  --shadow-gold: 0 16px 40px rgba(122, 97, 32, 0.16);
+
+  --body-gradient:
+    radial-gradient(circle at top, rgba(176, 141, 53, 0.14), transparent 24%),
+    radial-gradient(circle at 80% 0%, rgba(120, 90, 30, 0.06), transparent 20%),
+    #f3efe6;
 }
 
 /* ---------- Global polish ---------- */
@@ -163,10 +229,16 @@
 .btn-primary,
 .button.button-primary {
   background: var(--gradient-gold);
-  color: #1a1406;
+  color: var(--accent-on);
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 10px 28px rgba(215, 183, 97, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   font-weight: 700;
+}
+
+html[data-theme='light'] .btn-primary,
+html[data-theme='light'] .button.button-primary {
+  border-color: rgba(20, 17, 13, 0.12);
+  box-shadow: 0 8px 22px rgba(122, 97, 32, 0.22);
 }
 
 .button.button-primary:hover {
@@ -258,7 +330,7 @@
   display: inline-block;
   width: 1.05em;
   height: 1.05em;
-  border: 2px solid rgba(0, 0, 0, 0.25);
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
   border-top-color: currentColor;
   border-radius: 999px;
   animation: spin 0.7s linear infinite;

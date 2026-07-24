@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
-  const { t } = usePreferences();
+  const { t, theme, setTheme, language, setLanguage } = usePreferences();
   const location = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -46,7 +46,7 @@ export const Navbar = () => {
   const roleLabel = user?.role === 'admin'
     ? t('nav.instructor')
     : user?.plan_tier
-      ? planLabel(user.plan_tier)
+      ? planLabel(user.plan_tier, t)
       : user?.role === 'premium'
         ? t('nav.premiumStudent')
         : t('nav.student');
@@ -125,6 +125,26 @@ export const Navbar = () => {
         </div>
 
         <div className="navbar-actions">
+          <button
+            type="button"
+            className="button button-ghost navbar-theme-toggle"
+            title={language === 'en' ? 'Español' : 'English'}
+            aria-label={language === 'en' ? 'Español' : 'English'}
+            onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
+          >
+            {language === 'en' ? 'ES' : 'EN'}
+          </button>
+
+          <button
+            type="button"
+            className="button button-ghost navbar-theme-toggle"
+            title={t('nav.theme')}
+            aria-label={t('nav.theme')}
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          >
+            <UIIcon name={theme === 'light' ? 'moon' : 'sun'} size={18} />
+          </button>
+
           {user && (
             <>
               <Link to="/profile" className="navbar-avatar-link navbar-avatar-desktop" title={t('nav.profile')} onClick={closeMobile}>

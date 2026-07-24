@@ -7,10 +7,10 @@ const resolveApiBase = () => {
   if (configured) {
     return configured.replace(/\/$/, '');
   }
-  if (import.meta.env.PROD) {
-    return '/api';
-  }
-  return 'http://localhost:3001/api';
+  // Same-origin /api:
+  // - Vite dev: proxied to localhost:3001 (avoids CSP/CORS blocks)
+  // - Vercel prod: rewritten to the serverless function
+  return '/api';
 };
 
 export const BACKEND_BASE_URL = resolveApiBase().replace(/\/api$/, '') || '';

@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 
 export const ConfirmDialog = ({ title, message, confirmLabel, onConfirm, onCancel, destructive = true }) => {
   const confirmRef = useRef(null);
+  const { t } = usePreferences();
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -20,7 +22,7 @@ export const ConfirmDialog = ({ title, message, confirmLabel, onConfirm, onCance
         <p>{message}</p>
         <div className="confirm-dialog-actions">
           <button type="button" className="button button-secondary" onClick={onCancel}>
-            Cancelar
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -28,7 +30,7 @@ export const ConfirmDialog = ({ title, message, confirmLabel, onConfirm, onCance
             className={`button ${destructive ? 'button-danger' : 'button-primary'}`}
             onClick={onConfirm}
           >
-            {confirmLabel || 'Confirmar'}
+            {confirmLabel || t('common.confirm')}
           </button>
         </div>
       </div>

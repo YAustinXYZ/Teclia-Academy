@@ -2,24 +2,24 @@
 html[data-theme='dark'] {
   color-scheme: dark;
   font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #080808;
-  color: #f5f5f5;
+  background: #060606;
+  color: #f7f5f0;
   font-size: 16px;
   line-height: 1.7;
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;
   --bg: #060606;
-  --text: #f5f5f5;
-  --text-muted: rgba(255, 255, 255, 0.55);
-  --surface: rgba(255, 255, 255, 0.05);
-  --surface-strong: rgba(255, 255, 255, 0.1);
-  --surface-soft: rgba(255, 255, 255, 0.02);
-  --border: rgba(255, 255, 255, 0.1);
+  --text: #f7f5f0;
+  --text-muted: #c2bbb0;
+  --surface: rgba(255, 255, 255, 0.07);
+  --surface-strong: rgba(255, 255, 255, 0.12);
+  --surface-soft: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.16);
   --accent: #d7b761;
-  --accent-bright: #e5c158;
+  --accent-bright: #f0d78a;
   --shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
-  --navbar-bg: rgba(10, 10, 12, 0.72);
-  --card-bg: rgba(18, 18, 18, 0.92);
+  --navbar-bg: rgba(10, 10, 12, 0.88);
+  --card-bg: #141416;
   --body-gradient:
     radial-gradient(circle at top, rgba(201, 168, 76, 0.18), transparent 18%),
     radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.06), transparent 8%),
@@ -29,24 +29,24 @@ html[data-theme='dark'] {
 
 html[data-theme='light'] {
   color-scheme: light;
-  background: #f4f1ea;
-  color: #1c1914;
-  --bg: #f4f1ea;
-  --text: #1c1914;
-  --text-muted: rgba(28, 25, 20, 0.62);
-  --surface: rgba(28, 25, 20, 0.04);
-  --surface-strong: rgba(28, 25, 20, 0.08);
-  --surface-soft: rgba(255, 255, 255, 0.65);
-  --border: rgba(28, 25, 20, 0.12);
-  --accent: #9a7b2f;
-  --accent-bright: #b08d35;
+  background: #f3efe6;
+  color: #14110d;
+  --bg: #f3efe6;
+  --text: #14110d;
+  --text-muted: #40382f;
+  --surface: rgba(20, 17, 13, 0.05);
+  --surface-strong: rgba(20, 17, 13, 0.09);
+  --surface-soft: #fffdf8;
+  --border: rgba(20, 17, 13, 0.18);
+  --accent: #6f561c;
+  --accent-bright: #7a6120;
   --shadow: 0 20px 50px rgba(40, 30, 10, 0.12);
-  --navbar-bg: rgba(255, 252, 245, 0.86);
-  --card-bg: rgba(255, 255, 255, 0.92);
+  --navbar-bg: rgba(255, 252, 246, 0.94);
+  --card-bg: #ffffff;
   --body-gradient:
-    radial-gradient(circle at top, rgba(176, 141, 53, 0.18), transparent 22%),
-    radial-gradient(circle at 80% 0%, rgba(120, 90, 30, 0.08), transparent 18%),
-    #f6f2e8;
+    radial-gradient(circle at top, rgba(176, 141, 53, 0.14), transparent 24%),
+    radial-gradient(circle at 80% 0%, rgba(120, 90, 30, 0.06), transparent 20%),
+    #f3efe6;
 }
 
 * {
@@ -66,48 +66,237 @@ body {
   transition: background 220ms ease, color 220ms ease;
 }
 
+/* Light-mode contrast pass: remap dark-only colors to readable ink */
 html[data-theme='light'] .navbar {
   background: var(--navbar-bg);
   border-bottom-color: var(--border);
+  color: var(--text);
+}
+
+html[data-theme='light'] .navbar a,
+html[data-theme='light'] .navbar button,
+html[data-theme='light'] .navbar-theme-toggle,
+html[data-theme='light'] .user-role,
+html[data-theme='light'] .role-badge {
+  color: var(--text);
 }
 
 html[data-theme='light'] .profile-card,
 html[data-theme='light'] .profile-summary-card,
 html[data-theme='light'] .dashboard-main,
 html[data-theme='light'] .settings-dropdown,
-html[data-theme='light'] .avatar-preview-shell {
+html[data-theme='light'] .avatar-preview-shell,
+html[data-theme='light'] .welcome-banner,
+html[data-theme='light'] .dash-stat,
+html[data-theme='light'] .section-surface,
+html[data-theme='light'] .auth-card,
+html[data-theme='light'] .tc-card,
+html[data-theme='light'] .stat-card,
+html[data-theme='light'] .action-card,
+html[data-theme='light'] .students-panel,
+html[data-theme='light'] .slide-panel,
+html[data-theme='light'] .modal-content,
+html[data-theme='light'] .content-table-wrapper,
+html[data-theme='light'] .settings-option,
+html[data-theme='light'] .plan-card,
+html[data-theme='light'] .next-step-banner,
+html[data-theme='light'] .empty-state {
   background: var(--card-bg);
   border-color: var(--border);
   color: var(--text);
 }
 
 html[data-theme='light'] .button-ghost,
+html[data-theme='light'] .button-secondary,
 html[data-theme='light'] .filter-chip,
-html[data-theme='light'] .navbar-toggle {
+html[data-theme='light'] .filter-btn,
+html[data-theme='light'] .navbar-toggle,
+html[data-theme='light'] .button-settings {
   color: var(--text);
   border-color: var(--border);
   background: var(--surface);
 }
 
+html[data-theme='light'] .button-ghost:hover,
+html[data-theme='light'] .button-secondary:hover,
+html[data-theme='light'] .filter-chip.active,
+html[data-theme='light'] .filter-btn.active {
+  color: var(--text);
+  background: var(--surface-strong);
+  border-color: var(--border-strong, var(--border));
+}
+
+html[data-theme='light'] h1,
+html[data-theme='light'] h2,
+html[data-theme='light'] h3,
+html[data-theme='light'] h4,
 html[data-theme='light'] .profile-header h1,
 html[data-theme='light'] .profile-section h2,
 html[data-theme='light'] .profile-value,
-html[data-theme='light'] .profile-summary-value {
+html[data-theme='light'] .profile-summary-value,
+html[data-theme='light'] .welcome-banner h1,
+html[data-theme='light'] .section-intro h2,
+html[data-theme='light'] .dashboard-header h1,
+html[data-theme='light'] .content-header h2,
+html[data-theme='light'] .auth-card h1,
+html[data-theme='light'] .tc-body h3,
+html[data-theme='light'] .stat-value,
+html[data-theme='light'] .dash-stat-value,
+html[data-theme='light'] .row-title,
+html[data-theme='light'] .lp h1,
+html[data-theme='light'] .lp h2,
+html[data-theme='light'] .lp h3 {
   color: var(--text);
 }
 
+html[data-theme='light'] p,
+html[data-theme='light'] label,
 html[data-theme='light'] .profile-summary-label,
 html[data-theme='light'] .field-hint,
-html[data-theme='light'] .avatar-help-text {
+html[data-theme='light'] .avatar-help-text,
+html[data-theme='light'] .section-copy,
+html[data-theme='light'] .welcome-banner p,
+html[data-theme='light'] .auth-subtitle,
+html[data-theme='light'] .tc-desc,
+html[data-theme='light'] .tc-author,
+html[data-theme='light'] .text-muted,
+html[data-theme='light'] .row-desc,
+html[data-theme='light'] .hint,
+html[data-theme='light'] .account-meta,
+html[data-theme='light'] .stat-label,
+html[data-theme='light'] .dash-stat-top,
+html[data-theme='light'] .lp-lead,
+html[data-theme='light'] .lp-section-copy,
+html[data-theme='light'] .lp-plan-sub,
+html[data-theme='light'] .site-footer,
+html[data-theme='light'] .site-footer a,
+html[data-theme='light'] .auth-footer,
+html[data-theme='light'] .auth-footer a {
+  color: var(--text-muted);
+}
+
+html[data-theme='light'] .content-table th,
+html[data-theme='light'] .content-table td,
+html[data-theme='light'] .students-table th,
+html[data-theme='light'] .students-table td {
+  border-color: var(--border);
+  color: var(--text);
+}
+
+html[data-theme='light'] .content-table th {
   color: var(--text-muted);
 }
 
 html[data-theme='light'] input,
 html[data-theme='light'] select,
-html[data-theme='light'] textarea {
+html[data-theme='light'] textarea,
+html[data-theme='light'] .search-input {
   background: #fff;
   color: var(--text);
   border-color: var(--border);
+}
+
+html[data-theme='light'] input::placeholder,
+html[data-theme='light'] textarea::placeholder {
+  color: #7a7165;
+}
+
+html[data-theme='light'] a:not(.button) {
+  color: var(--accent-bright);
+}
+
+html[data-theme='light'] .chip,
+html[data-theme='light'] .badge,
+html[data-theme='light'] .badge-status {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+html[data-theme='light'] .chip-gold,
+html[data-theme='light'] .eyebrow-gold,
+html[data-theme='light'] .lp-kicker,
+html[data-theme='light'] .lp-badge {
+  color: var(--accent-bright);
+}
+
+html[data-theme='light'] .settings-option {
+  color: var(--text);
+}
+
+html[data-theme='light'] .settings-option:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+html[data-theme='light'] .tc-view,
+html[data-theme='light'] .button-invert {
+  color: #14110d;
+}
+
+html[data-theme='light'] .bg-grid::before {
+  background-image:
+    linear-gradient(rgba(20, 17, 13, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 17, 13, 0.06) 1px, transparent 1px);
+}
+
+html[data-theme='light'] .welcome-banner,
+html[data-theme='light'] .next-step-banner,
+html[data-theme='light'] .persona-banner {
+  background: linear-gradient(120deg, rgba(122, 97, 32, 0.1), #ffffff);
+}
+
+html[data-theme='light'] .lp-demo,
+html[data-theme='light'] .lp-plan,
+html[data-theme='light'] .lp-feature,
+html[data-theme='light'] .lp-quote,
+html[data-theme='light'] .lp-step {
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+html[data-theme='light'] .error-message {
+  color: #8f1d14;
+  background: rgba(180, 35, 24, 0.08);
+  border-color: rgba(180, 35, 24, 0.22);
+}
+
+html[data-theme='light'] .success-message {
+  color: #14532d;
+  background: rgba(31, 122, 63, 0.1);
+  border-color: rgba(31, 122, 63, 0.22);
+}
+
+/* Finale CTA stays on a dark panel in both themes */
+html[data-theme='light'] .lp-finale-inner,
+html[data-theme='light'] .lp-finale-inner h2,
+html[data-theme='light'] .lp-finale-inner .lp-kicker {
+  color: #f7f5f0;
+}
+
+html[data-theme='light'] .lp-finale-inner > p {
+  color: #d8d0c2;
+}
+
+html[data-theme='light'] .lp-finale-inner .button-secondary {
+  color: #f7f5f0;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Piano shell is always dark — keep helper text light */
+html[data-theme='light'] .keyboard-shell,
+html[data-theme='light'] .keyboard-shell .keyboard-note,
+html[data-theme='light'] .keyboard-shell .keyboard-caption,
+html[data-theme='light'] .keyboard-shell p {
+  color: #e8e2d6;
+}
+
+html[data-theme='light'] .keyboard-shell .keyboard-sustain-toggle {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff8ec !important;
+  border: 0 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
 }
 
 .theme-toggle-row {
@@ -695,7 +884,9 @@ h1 {
 
 .scale-description {
   margin: 0 0 0.75rem;
-  color: #e0d9c1;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
 }
 
 .scale-notes {
@@ -705,26 +896,33 @@ h1 {
 }
 
 .scale-note {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 0;
   border-radius: 999px;
-  padding: 0.55rem 0.9rem;
-  color: #ffffff;
-  font-size: 0.95rem;
+  padding: 0.5rem 0.85rem;
+  color: var(--accent-bright);
+  font-size: 0.92rem;
+  font-weight: 700;
 }
 
 .keyboard-shell {
-  background: rgba(8, 10, 16, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 2rem;
-  padding: 2rem;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(215, 183, 97, 0.12), transparent 55%),
+    linear-gradient(180deg, #1a1c22 0%, #101218 100%);
+  border: 0;
+  border-radius: 2.25rem;
+  padding: 1.75rem 1.6rem 1.5rem;
+  box-shadow:
+    0 28px 60px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   margin: auto;
   justify-self: center;
   max-width: 900px;
+  width: 100%;
   display: grid;
-  gap: 1.2rem;
+  gap: 1.1rem;
   overflow-x: auto;
+  color: #f3efe6;
 }
 
 .keyboard-actions {
@@ -736,12 +934,25 @@ h1 {
 }
 
 .keyboard-sustain-toggle {
-  min-width: 160px;
+  min-width: 150px;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #f7f5f0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  font-weight: 650;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.keyboard-sustain-toggle:hover,
+.keyboard-sustain-toggle.active {
+  background: rgba(215, 183, 97, 0.3) !important;
+  color: #fff8e8 !important;
+  box-shadow: inset 0 0 0 1.5px rgba(215, 183, 97, 0.7);
 }
 
 .keyboard-note {
   margin: 0;
-  color: #babbc2;
+  color: #d8d4cb;
   font-size: 0.95rem;
   text-align: center;
 }
@@ -764,8 +975,8 @@ h1 {
 
 .piano-key {
   position: relative;
-  border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.35rem 0.35rem 1.15rem 1.15rem;
+  border: 0;
   cursor: pointer;
   transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
   display: flex;
@@ -779,24 +990,28 @@ h1 {
 
 .piano-key span {
   display: block;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
 }
 
 .piano-key.white {
-  background: linear-gradient(180deg, #fbf7ef 0%, #e3d7be 100%);
+  background: linear-gradient(180deg, #fffaf1 0%, #efe2c8 100%);
   color: #1f1f1f;
-  height: 6rem;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03), 0 12px 24px rgba(0, 0, 0, 0.08);
+  height: 6.2rem;
+  box-shadow:
+    inset 0 -10px 18px rgba(80, 60, 20, 0.08),
+    0 10px 18px rgba(0, 0, 0, 0.16);
 }
 
 .piano-key.black {
-  background: linear-gradient(180deg, #121212 0%, #1f1f1f 100%);
+  background: linear-gradient(180deg, #2a2a2e 0%, #121214 100%);
   color: #f3f1eb;
-  height: 4.4rem;
+  height: 4.2rem;
   margin-top: 0;
   z-index: 2;
   grid-column: span 1;
-  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.24);
+  border-radius: 0.25rem 0.25rem 0.85rem 0.85rem;
+  box-shadow: 0 10px 16px rgba(0, 0, 0, 0.35);
   transform: translateY(0);
 }
 
@@ -861,20 +1076,23 @@ h1 {
 }
 
 .scale-button {
-  background: rgba(255, 255, 255, 0.05);
-  color: #efefef;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--foreground, var(--text)) 7%, transparent);
+  color: var(--text);
+  border: 0;
   border-radius: 999px;
-  padding: 0.9rem 1.2rem;
+  padding: 0.8rem 1.15rem;
   cursor: pointer;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  font-weight: 600;
+  transition: transform 180ms ease, background 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 
 .scale-button:hover,
 .scale-button.active {
-  border-color: #c9a84c;
-  background: rgba(201, 168, 76, 0.16);
-  transform: translateY(-1px);
+  border: 0;
+  background: var(--accent-muted);
+  color: var(--accent-bright);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: none;
 }
 
 .scale-details {
@@ -883,8 +1101,9 @@ h1 {
 
 .keyboard-caption {
   margin-top: 1rem;
-  color: #bdbdbd;
+  color: #e2ddd2;
   text-align: center;
+  font-size: 0.95rem;
 }
 
 .section-about {
@@ -1434,20 +1653,23 @@ h1 {
 }
 
 .scale-sign {
-  background: rgba(255, 255, 255, 0.05);
-  color: #efefef;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--foreground, var(--text)) 7%, transparent);
+  color: var(--text);
+  border: 0;
   border-radius: 999px;
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 1rem;
   cursor: pointer;
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+  font-weight: 650;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 
 .scale-sign.active,
 .scale-sign:hover {
-  border-color: #c9a84c;
-  background: rgba(201, 168, 76, 0.14);
-  transform: translateY(-1px);
+  border: 0;
+  background: var(--accent-muted);
+  color: var(--accent-bright);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: none;
 }
 
 .upload-form input:focus,
@@ -1600,8 +1822,9 @@ h1 {
 .navbar {
   position: relative;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--navbar-bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
   padding: 1rem 0;
   margin-bottom: 1rem;
   backdrop-filter: blur(14px);
@@ -1689,13 +1912,13 @@ h1 {
 }
 
 .user-name {
-  color: #f5f5f5;
+  color: var(--text);
   font-weight: 600;
   display: none;
 }
 
 .user-role {
-  color: #c9a84c;
+  color: var(--accent-bright);
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -1703,7 +1926,7 @@ h1 {
 .button-settings {
   background: transparent;
   border: none;
-  color: #c9a84c;
+  color: var(--accent-bright);
   font-size: 1.2rem;
   padding: 0.5rem;
   cursor: pointer;
@@ -1713,7 +1936,7 @@ h1 {
 
 .button-settings:hover {
   transform: rotate(15deg);
-  color: #e5c158;
+  color: var(--accent);
 }
 
 /* Settings Dropdown Menu */
@@ -1726,14 +1949,15 @@ h1 {
   position: absolute;
   top: calc(100% + 0.35rem);
   right: 0;
-  background: rgba(18, 18, 18, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: 1.2rem;
   padding: 0.5rem 0;
   min-width: 210px;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-md, 0 14px 40px rgba(0, 0, 0, 0.35));
   z-index: 1100;
   backdrop-filter: blur(12px);
+  color: var(--text);
 }
 
 .settings-option {
@@ -1743,7 +1967,7 @@ h1 {
   text-align: left;
   background: transparent;
   border: none;
-  color: #f5f5f5;
+  color: var(--text);
   cursor: pointer;
   transition: background 180ms ease, color 180ms ease;
   text-decoration: none;
@@ -1751,13 +1975,13 @@ h1 {
 }
 
 .settings-option:hover {
-  background: rgba(201, 168, 76, 0.15);
-  color: #c9a84c;
+  background: var(--accent-muted);
+  color: var(--accent-bright);
 }
 
 .settings-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border);
   margin: 0.5rem 0;
 }
 
@@ -2462,19 +2686,19 @@ h1 {
 }
 
 .button-ghost {
-  background: rgba(255, 255, 255, 0.06);
-  color: #f5f5f5;
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 .button-ghost:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--surface-strong);
 }
 
 .button-ghost.nav-active {
-  background: rgba(201, 168, 76, 0.2);
-  border-color: rgba(201, 168, 76, 0.45);
-  color: #f8e7b0;
+  background: var(--accent-muted);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-bright);
 }
 
 .section-surface {

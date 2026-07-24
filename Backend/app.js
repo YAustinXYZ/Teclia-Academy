@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import 'dotenv/config';
+import './loadEnv.js';
 import { globalLimiter } from './middleware/rateLimiter.js';
 import authRoutes from './routes/auth.js';
 import contentRoutes from './routes/content.js';

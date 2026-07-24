@@ -82,6 +82,8 @@ const UI_PATHS = {
   graduation: <><path d="M12 4L2.5 9 12 14l9.5-5L12 4z" /><path d="M6.5 11.5v4.5c0 1.4 2.5 2.8 5.5 2.8s5.5-1.4 5.5-2.8v-4.5" /><path d="M21.5 9v5" /></>,
   arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
   shield: <><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8-7.5 9.5-4.3-1.5-7.5-4.9-7.5-9.5V6L12 3z" /><path d="M9 12l2.2 2.2L15.5 9.8" /></>,
+  sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M5.2 18.8l1.6-1.6M17.2 6.8l1.6-1.6" /></>,
+  moon: <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 7 7 0 1 0 20 14.5z" />,
 };
 
 export const UIIcon = ({ name, size = 20, className, strokeWidth = 1.7 }) => (

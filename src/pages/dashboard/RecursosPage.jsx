@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useContent } from '../../context/ContentContext.jsx';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { ContentGrid } from '../../components/content/ContentGrid.jsx';
 import { planLabel } from '../../utils/plans.js';
@@ -7,6 +8,7 @@ import { planLabel } from '../../utils/plans.js';
 const RecursosPage = () => {
   const { content, loadContent, loading } = useContent();
   const { user } = useAuth();
+  const { t } = usePreferences();
 
   useEffect(() => {
     if (!content || content.length === 0) {
@@ -18,13 +20,13 @@ const RecursosPage = () => {
     <div className="page-shell">
       <section className="section-surface">
         <div className="section-intro">
-          <p className="eyebrow-gold">Tu biblioteca</p>
-          <h2>Recursos disponibles</h2>
+          <p className="eyebrow-gold">{t('resources.eyebrow')}</p>
+          <h2>{t('resources.title')}</h2>
           <p className="section-copy">
-            Accede a los recursos compartidos para tu práctica y avance musical.
+            {t('resources.copy')}
           </p>
           <div style={{ marginTop: '0.75rem' }}>
-            <span className="chip chip-gold">Plan {planLabel(user?.plan_tier).replace(/^[^\w]+/, '')}</span>
+            <span className="chip chip-gold">{t('plan.label', { plan: planLabel(user?.plan_tier, t) })}</span>
           </div>
         </div>
 

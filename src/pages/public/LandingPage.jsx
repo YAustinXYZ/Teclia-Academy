@@ -5,95 +5,26 @@ import { statsService } from '../../services/api.js';
 import StripeCardForm from '../../components/payments/StripeCardForm.jsx';
 import { SiteFooter } from '../../components/common/SiteFooter.jsx';
 import { UIIcon } from '../../components/common/Icons.jsx';
-
-const demoSlides = [
-  { icon: 'video', title: 'Explora las lecciones', text: 'Rutas de aprendizaje en video, ordenadas paso a paso.' },
-  { icon: 'piano', title: 'Practica una escala', text: 'Teclado interactivo con escalas resaltadas en tiempo real.' },
-  { icon: 'star', title: 'Sube de plan', text: 'Desbloquea partituras exclusivas y sesiones 1:1.' },
-  { icon: 'trophy', title: 'Domina el piano', text: 'Avanza con constancia hasta tu certificado Teclia.' },
-];
-
-const trustChips = [
-  { icon: 'video', label: 'Lecciones en video' },
-  { icon: 'sheet', label: 'Partituras incluidas' },
-  { icon: 'star', label: 'Planes flexibles' },
-];
-
-const steps = [
-  { title: 'Crea tu cuenta', text: 'Regístrate en un minuto y entra a tu espacio de práctica.' },
-  { title: 'Elige tu plan', text: 'Accede al contenido según el nivel de acompañamiento que buscas.' },
-  { title: 'Practica con método', text: 'Video, partitura y teclado interactivo en la misma ruta.' },
-  { title: 'Toca con confianza', text: 'Avanza con claridad, feedback y constancia real.' },
-];
-
-const features = [
-  { icon: 'video', title: 'Lecciones en video', text: 'Clases prácticas, ordenadas por nivel, para estudiar a tu ritmo.' },
-  { icon: 'sheet', title: 'Partituras listas', text: 'Material preparado para sentarte al piano y empezar a tocar.' },
-  { icon: 'piano', title: 'Teclado interactivo', text: 'Escalas y notas resaltadas para oír y ver lo que practicas.' },
-  { icon: 'book', title: 'Teoría aplicada', text: 'Armonía y lectura explicadas con ejemplos que sí usas.' },
-];
-
-const premiumPlans = [
-  {
-    label: 'Básico',
-    sub: 'Para empezar con buen pie',
-    price: '$9.99',
-    features: ['Acceso a recursos', 'Lecciones guiadas', 'Comunidad privada'],
-  },
-  {
-    label: 'Pro',
-    sub: 'El favorito de los alumnos',
-    price: '$24.99',
-    features: ['Todo lo del Básico', 'Feedback de IA', 'Clases 1:1', 'Partituras exclusivas'],
-    highlight: true,
-  },
-  {
-    label: 'Master',
-    sub: 'Experiencia VIP completa',
-    price: '$49.99',
-    features: ['Todo lo del Pro', 'Plan personalizado', 'Sesiones premium', 'Análisis avanzado'],
-  },
-];
-
-const testimonials = [
-  { quote: 'En dos meses pasé de no leer partituras a tocar mis primeras piezas completas. Las lecciones son clarísimas.', name: 'María F.', role: 'Alumna · Plan Pro', initial: 'M' },
-  { quote: 'El teclado interactivo y las escalas resaltadas me ayudaron a entender la teoría de una vez por todas.', name: 'Diego R.', role: 'Alumno · Plan Básico', initial: 'D' },
-  { quote: 'La mejor inversión para mi hija. Contenido serio, bien producido y con seguimiento real.', name: 'Ana L.', role: 'Madre de alumna', initial: 'A' },
-];
+import { usePreferences } from '../../context/PreferencesContext.jsx';
+import { getLandingContent } from '../../i18n/landingContent.js';
 
 const rootNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-const scaleTypes = [
-  {
-    name: 'Mayor',
-    formula: [2, 2, 1, 2, 2, 2, 1],
-    description: 'Escala mayor clásica para prácticas brillantes y melodías claras.',
-  },
-  {
-    name: 'Menor natural',
-    formula: [2, 1, 2, 2, 1, 2, 2],
-    description: 'Escala menor natural con carácter profundo y expresivo.',
-  },
-  {
-    name: 'Menor armónica',
-    formula: [2, 1, 2, 2, 1, 3, 1],
-    description: 'Escala menor armónica con un color más dramático y resonante.',
-  },
-  {
-    name: 'Pentatónica mayor',
-    formula: [2, 2, 3, 2, 3],
-    description: 'Escala abierta, ideal para improvisar con fluidez desde el comienzo.',
-  },
-  {
-    name: 'Blues',
-    formula: [3, 2, 1, 1, 3, 2],
-    description: 'Escala de blues con color y estilo moderno para explorar nuevos sonidos.',
-  },
-];
-
 function LandingPage() {
+  const { t, language } = usePreferences();
+  const {
+    demoSlides,
+    trustChips,
+    steps,
+    features,
+    premiumPlans,
+    testimonials,
+    scaleTypes,
+  } = useMemo(() => getLandingContent(t), [t, language]);
+
   const [selectedRoot, setSelectedRoot] = useState('C');
-  const [selectedScaleType, setSelectedScaleType] = useState(scaleTypes[0]);
+  const [selectedScaleIndex, setSelectedScaleIndex] = useState(0);
+  const selectedScaleType = scaleTypes[selectedScaleIndex] || scaleTypes[0];
   const [sustainMode, setSustainMode] = useState(false);
   const [sustainActive, setSustainActive] = useState(false);
   const [checkoutPlan, setCheckoutPlan] = useState(null);
@@ -132,7 +63,7 @@ function LandingPage() {
       setDemoStep((s) => (s + 1) % demoSlides.length);
     }, 2600);
     return () => clearInterval(id);
-  }, []);
+  }, [demoSlides.length]);
 
   const selectedScaleNotes = useMemo(() => {
     const allNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -409,14 +340,14 @@ function LandingPage() {
           <div className="lp-hero-glow" aria-hidden="true" />
           <div className="lp-hero-inner">
             <div className="hero-copy animate-fade-up">
-              <span className="lp-badge"><span className="dot" /> Academia online · Música para todos</span>
-              <h1>Aprende piano <span className="grad">con acompañamiento real.</span></h1>
+              <span className="lp-badge"><span className="dot" /> {t('lp.hero.badge')}</span>
+              <h1>{t('lp.hero.title')} <span className="grad">{t('lp.hero.titleAccent')}</span></h1>
               <p className="lp-lead">
-                Lecciones en video, partituras y ejercicios interactivos para practicar con claridad y avanzar con confianza.
+                {t('lp.hero.sub')}
               </p>
               <div className="lp-cta-row">
-                <a className="button button-primary" href="/auth/signup">Comenzar gratis</a>
-                <a className="button button-secondary" href="#planes">Ver planes</a>
+                <a className="button button-primary" href="/auth/signup">{t('lp.hero.ctaPrimary')}</a>
+                <a className="button button-secondary" href="#planes">{t('lp.hero.ctaSecondary')}</a>
               </div>
               <ul className="lp-trust">
                 {trustChips.map((chip) => (
@@ -434,7 +365,7 @@ function LandingPage() {
                 <span className="lp-note-float" style={{ bottom: '12%', left: '8%', animationDelay: '1.5s' }} aria-hidden="true">♫</span>
                 <div className="lp-demo-head">
                   <div className="lp-demo-dots"><span /><span /><span /></div>
-                  <span className="lp-demo-title">Teclia · demo</span>
+                  <span className="lp-demo-title">{t('lp.demo.label')}</span>
                 </div>
                 <div className="lp-demo-stage">
                   <div className="lp-demo-slide" key={demoStep}>
@@ -445,7 +376,7 @@ function LandingPage() {
                     <p>{demoSlides[demoStep].text}</p>
                   </div>
                 </div>
-                <div className="lp-demo-progress" role="tablist" aria-label="Pasos de la demo">
+                <div className="lp-demo-progress" role="tablist" aria-label={t('lp.demo.aria')}>
                   {demoSlides.map((slide, i) => (
                     <button
                       key={slide.title}
@@ -466,8 +397,8 @@ function LandingPage() {
         {/* ============ CÓMO FUNCIONA ============ */}
         <section className="lp-section" id="como-funciona">
           <div className="lp-section-head">
-            <p className="lp-kicker">Cómo funciona</p>
-            <h2>De la primera lección a tocar con seguridad.</h2>
+            <p className="lp-kicker">{t('lp.how.kicker')}</p>
+            <h2>{t('lp.how.title')}</h2>
           </div>
           <ol className="lp-steps">
             {steps.map((step, i) => (
@@ -483,8 +414,8 @@ function LandingPage() {
         {/* ============ FEATURES ============ */}
         <section className="lp-section" id="features">
           <div className="lp-section-head">
-            <p className="lp-kicker">La academia</p>
-            <h2>Todo lo esencial para avanzar, en un solo lugar.</h2>
+            <p className="lp-kicker">{t('lp.features.kicker')}</p>
+            <h2>{t('lp.features.title')}</h2>
           </div>
           <div className="lp-features">
             {features.map((f) => (
@@ -500,19 +431,19 @@ function LandingPage() {
         {/* ============ PLANES ============ */}
         <section className="lp-section" id="planes">
           <div className="lp-section-head">
-            <p className="lp-kicker">Planes</p>
-            <h2>Elige el ritmo que necesitas.</h2>
-            <p className="lp-section-copy">Sin permanencia. Cambia de plan cuando quieras.</p>
+            <p className="lp-kicker">{t('lp.plans.kicker')}</p>
+            <h2>{t('lp.plans.title')}</h2>
+            <p className="lp-section-copy">{t('lp.plans.sub')}</p>
           </div>
           <div className="lp-pricing">
             {premiumPlans.map((plan) => (
               <div key={plan.label} className={`lp-plan ${plan.highlight ? 'featured' : ''}`}>
-                {plan.highlight && <span className="lp-plan-tag">Recomendado</span>}
+                {plan.highlight && <span className="lp-plan-tag">{t('lp.plans.recommended')}</span>}
                 <h3>{plan.label}</h3>
                 <p className="lp-plan-sub">{plan.sub}</p>
                 <div className="lp-plan-price">
                   <span className="amount">{plan.price}</span>
-                  <span className="per">/mes</span>
+                  <span className="per">{t('lp.plans.perMonth')}</span>
                 </div>
                 <ul>
                   {plan.features.map((feature) => (
@@ -527,7 +458,7 @@ function LandingPage() {
                   className={`button ${plan.highlight ? 'button-primary' : 'button-secondary'} button-block`}
                   onClick={() => openCheckout(plan.label)}
                 >
-                  Elegir {plan.label}
+                  {t('lp.plans.choose', { plan: plan.label })}
                 </button>
               </div>
             ))}
@@ -537,9 +468,9 @@ function LandingPage() {
         {/* ============ HERRAMIENTA INTERACTIVA ============ */}
         <section className="lp-section lp-explore" id="explora">
           <div className="explore-copy">
-            <p className="lp-kicker">Practica ahora</p>
-            <h2>Escucha las escalas. Vuelve a tocarlas.</h2>
-            <p>Elige una tonalidad, una escala y pulsa el teclado. El audio se activa con tu primera nota.</p>
+            <p className="lp-kicker">{t('lp.explore.kicker')}</p>
+            <h2>{t('lp.explore.title')}</h2>
+            <p>{t('lp.explore.sub')}</p>
             <div className="scale-sign-selector">
               {rootNotes.map((note) => (
                 <button
@@ -557,7 +488,7 @@ function LandingPage() {
                 <button
                   key={scale.name}
                   className={scale.name === selectedScaleType.name ? 'scale-button active' : 'scale-button'}
-                  onClick={() => setSelectedScaleType(scale)}
+                  onClick={() => setSelectedScaleIndex(scaleTypes.indexOf(scale))}
                 >
                   {scale.name}
                 </button>
@@ -585,7 +516,7 @@ function LandingPage() {
               >
                 Sustain {sustainActive ? 'On' : 'Off'}
               </button>
-              <p className="keyboard-note">Mantén S para sustain; usa este botón en pantalla táctil.</p>
+              <p className="keyboard-note">{t('lp.keyboard.sustainHint')}</p>
             </div>
             <div className="keyboard">
               {keyboardKeys.map((key) => {
@@ -610,25 +541,25 @@ function LandingPage() {
                 );
               })}
             </div>
-            <p className="keyboard-caption">Presiona cualquier tecla para activar el audio.</p>
+            <p className="keyboard-caption">{t('lp.keyboard.caption')}</p>
           </div>
         </section>
 
         {/* ============ TESTIMONIOS ============ */}
         <section className="lp-section" id="testimonios">
           <div className="lp-section-head">
-            <p className="lp-kicker">Alumnos</p>
-            <h2>Historias reales de progreso.</h2>
+            <p className="lp-kicker">{t('lp.testimonials.kicker')}</p>
+            <h2>{t('lp.testimonials.head')}</h2>
           </div>
           <div className="lp-testimonials">
-            {testimonials.map((t) => (
-              <article className="lp-quote" key={t.name}>
-                <p>“{t.quote}”</p>
+            {testimonials.map((item) => (
+              <article className="lp-quote" key={item.name}>
+                <p>“{item.quote}”</p>
                 <div className="lp-quote-author">
-                  <span className="lp-quote-avatar" aria-hidden="true">{t.initial}</span>
+                  <span className="lp-quote-avatar" aria-hidden="true">{item.initial}</span>
                   <div>
-                    <strong>{t.name}</strong>
-                    <span>{t.role}</span>
+                    <strong>{item.name}</strong>
+                    <span>{item.role}</span>
                   </div>
                 </div>
               </article>
@@ -639,12 +570,12 @@ function LandingPage() {
         {/* ============ CTA FINAL ============ */}
         <section className="lp-finale" id="contacto">
           <div className="lp-finale-inner">
-            <p className="lp-kicker">Empieza hoy</p>
-            <h2>Tu primera lección está a un clic.</h2>
-            <p>Únete a Teclia y practica con la guía correcta desde el primer día.</p>
+            <p className="lp-kicker">{t('lp.finale.kicker')}</p>
+            <h2>{t('lp.finale.title')}</h2>
+            <p>{t('lp.finale.sub')}</p>
             <div className="lp-cta-row">
-              <a className="button button-invert" href="/auth/signup">Comenzar gratis</a>
-              <a className="button button-secondary" href="#planes">Ver planes</a>
+              <a className="button button-invert" href="/auth/signup">{t('lp.hero.ctaPrimary')}</a>
+              <a className="button button-secondary" href="#planes">{t('lp.hero.ctaSecondary')}</a>
             </div>
           </div>
         </section>

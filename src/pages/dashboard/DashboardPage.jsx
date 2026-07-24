@@ -3,17 +3,17 @@ import { ContentGrid } from '../../components/content/ContentGrid.jsx';
 import { hasAccess } from '../../components/content/ContentCard.jsx';
 import { NextStepBanner } from '../../components/dashboard/NextStepBanner.jsx';
 import { UIIcon } from '../../components/common/Icons.jsx';
+import { UserAvatar } from '../../components/common/UserAvatar.jsx';
 import { useContent } from '../../context/ContentContext.jsx';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
-import { resolveAvatar } from '../../utils/avatar.js';
 import { planLabel } from '../../utils/plans.js';
 
 export const DashboardPage = () => {
   const { content, loading } = useContent();
   const { user } = useAuth();
+  const { t } = usePreferences();
 
-  const avatarSrc = resolveAvatar(user?.avatar_url || '');
-  const initial = user?.name?.charAt(0)?.toUpperCase() || 'T';
   const hasPlan = Boolean(user?.plan_tier) || user?.role === 'premium' || user?.role === 'admin';
 
   const unlockedCount = useMemo(
@@ -23,15 +23,15 @@ export const DashboardPage = () => {
 
   const nextStep = hasPlan
     ? {
-        title: 'Continúa con tus recursos',
-        description: 'Retoma tus lecciones y sigue avanzando desde donde lo dejaste.',
-        ctaLabel: 'Ir a recursos',
+        title: t('dash.next.withPlan.title'),
+        description: t('dash.next.withPlan.desc'),
+        ctaLabel: t('dash.next.withPlan.cta'),
         to: '/recursos',
       }
     : {
-        title: 'Desbloquea todo el contenido',
-        description: 'Mejora tu plan para acceder a partituras exclusivas y clases 1:1.',
-        ctaLabel: 'Ver planes',
+        title: t('dash.next.noPlan.title'),
+        description: t('dash.next.noPlan.desc'),
+        ctaLabel: t('dash.next.noPlan.cta'),
         to: '/profile?tab=subscription',
       };
 
@@ -39,17 +39,19 @@ export const DashboardPage = () => {
     <div className="dashboard-layout">
       <div className="dashboard-main">
         <div className="welcome-banner animate-fade-up">
-          {avatarSrc ? (
-            <img src={avatarSrc} alt="" className="welcome-avatar" width={58} height={58} />
-          ) : (
-            <div className="welcome-avatar" aria-hidden="true">{initial}</div>
-          )}
+          <UserAvatar
+            name={user?.name}
+            avatarUrl={user?.avatar_url}
+            size="lg"
+            className="welcome-avatar"
+            placeholderClassName="welcome-avatar"
+          />
           <div>
-            <h1>¡Hola, {user?.name || 'estudiante'}!</h1>
-            <p>Bienvenido de nuevo a tu espacio de aprendizaje.</p>
+            <h1>{t('dash.hello', { name: user?.name || t('dash.studentFallback') })}</h1>
+            <p>{t('dash.welcome')}</p>
             <div className="welcome-meta">
-              <span className="chip chip-gold">{planLabel(user?.plan_tier) }</span>
-              <span className="chip chip-success"><span className="chip-dot" /> Cuenta activa</span>
+              <span className="chip chip-gold">{planLabel(user?.plan_tier, t)}</span>
+              <span className="chip chip-success"><span className="chip-dot" /> {t('common.active')}</span>
             </div>
           </div>
         </div>
@@ -58,16 +60,16 @@ export const DashboardPage = () => {
 
         <div className="dash-stats">
           <div className="dash-stat">
-            <div className="dash-stat-top"><span className="dash-stat-icon" aria-hidden="true"><UIIcon name="book" size={17} /></span> Recursos disponibles</div>
+            <div className="dash-stat-top"><span className="dash-stat-icon" aria-hidden="true"><UIIcon name="book" size={17} /></span> {t('dash.stats.available')}</div>
             <div className="dash-stat-value">{loading ? '—' : content.length}</div>
           </div>
           <div className="dash-stat">
-            <div className="dash-stat-top"><span className="dash-stat-icon" aria-hidden="true"><UIIcon name="unlock" size={17} /></span> Desbloqueados para ti</div>
+            <div className="dash-stat-top"><span className="dash-stat-icon" aria-hidden="true"><UIIcon name="unlock" size={17} /></span> {t('dash.stats.unlocked')}</div>
             <div className="dash-stat-value">{loading ? '—' : unlockedCount}</div>
           </div>
           <div className="dash-stat">
-            <div className="dash-stat-top"><span className="dash-stat-icon" aria-hidden="true"><UIIcon name="star" size={17} /></span> Tu plan</div>
-            <div className="dash-stat-value" style={{ fontSize: '1.35rem' }}>{planLabel(user?.plan_tier)}</div>
+            <div className="dash-stat-top"><span className="dash-stat-icon" aria-hidden="true"><UIIcon name="star" size={17} /></span> {t('dash.stats.plan')}</div>
+            <div className="dash-stat-value" style={{ fontSize: '1.35rem' }}>{planLabel(user?.plan_tier, t)}</div>
           </div>
         </div>
 

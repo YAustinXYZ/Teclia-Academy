@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/api.js';
-import { STUDENT_PLANS } from '../../utils/plans.js';
+import { studentPlanOptions } from '../../utils/plans.js';
 import { useToast } from '../../context/ToastContext.jsx';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 import { UserAvatar } from '../../components/common/UserAvatar.jsx';
 import { AdminBreadcrumbs } from '../../components/common/AdminBreadcrumbs.jsx';
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog.jsx';
@@ -15,13 +16,14 @@ import { UIIcon } from '../../components/common/Icons.jsx';
 
 const ITEMS_PER_PAGE = 20;
 
-const FILTER_CHIPS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'active', label: 'Activos' },
-  { value: 'suspended', label: 'Suspendidos' },
-  { value: 'has_plan', label: 'Con plan' },
-  { value: 'no_plan', label: 'Sin plan' },
-];
+const FILTER_CHIP_VALUES = ['all', 'active', 'suspended', 'has_plan', 'no_plan'];
+const FILTER_CHIP_KEYS = {
+  all: 'admin.filter.all',
+  active: 'admin.filter.active',
+  suspended: 'admin.filter.suspended',
+  has_plan: 'admin.filter.hasPlan',
+  no_plan: 'admin.filter.noPlan',
+};
 
 const sortStudents = (students, sortKey, sortDir) => {
   return [...students].sort((a, b) => {
@@ -45,6 +47,8 @@ const sortStudents = (students, sortKey, sortDir) => {
 
 export const AdminStudentsPage = () => {
   const navigate = useNavigate();
+  const { t, language } = usePreferences();
+  const dateLocale = language === 'en' ? 'en-US' : 'es-CR';
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -68,7 +72,7 @@ export const AdminStudentsPage = () => {
   useKeyboardShortcuts({
     focusSearch: () => document.querySelector('.search-input')?.focus(),
     showHelp: () => setShowShortcuts((p) => !p),
-    addStudent: () => toast.success('Funcionalidad próximamente: añadir estudiante'),
+    addStudent: () => toast.success(t('admin.addSoon')),
     createContent: () => navigate('/admin/upload'),
     goDashboard: () => navigate('/admin'),
     goStudents: () => navigate('/admin/students'),
@@ -82,7 +86,7 @@ export const AdminStudentsPage = () => {
       .getStudents()
       .then((res) => setStudents(res.data.students || []))
       .catch((err) => {
-        const msg = err.response?.data?.error || 'No se pudo cargar la lista de estudiantes.';
+        const msg = err.response?.data?.error || t('admin.loadStudentsFail');
         setError(msg);
         toast.error(msg);
       })
@@ -156,19 +160,19 @@ export const AdminStudentsPage = () => {
       if (action === 'activate') {
         await Promise.all(ids.map((id) => authService.updateStudentStatus(id, 'active')));
         setStudents((prev) => prev.map((s) => ids.includes(s.id) ? { ...s, status: 'active' } : s));
-        toast.success(`${ids.length} estudiante(s) activado(s)`);
+        toast.success(t('admin.bulkActivated', { count: ids.length }));
       } else if (action === 'deactivate') {
         await Promise.all(ids.map((id) => authService.updateStudentStatus(id, 'inactive')));
         setStudents((prev) => prev.map((s) => ids.includes(s.id) ? { ...s, status: 'inactive' } : s));
-        toast.success(`${ids.length} estudiante(s) desactivado(s)`);
+        toast.success(t('admin.bulkDeactivated', { count: ids.length }));
       } else if (action === 'delete') {
         await Promise.all(ids.map((id) => authService.deleteStudent(id)));
         setStudents((prev) => prev.filter((s) => !ids.includes(s.id)));
-        toast.success(`${ids.length} estudiante(s) eliminado(s)`);
+        toast.success(t('admin.bulkDeleted', { count: ids.length }));
       }
       setSelectedIds(new Set());
     } catch (err) {
-      toast.error(err.response?.data?.error || `Error al ejecutar acción en lote`);
+      toast.error(err.response?.data?.error || t('admin.bulkFail'));
     }
   };
 
@@ -177,9 +181,9 @@ export const AdminStudentsPage = () => {
     try {
       await authService.deleteStudent(student.id);
       setStudents((prev) => prev.filter((s) => Number(s.id) !== Number(student.id)));
-      toast.success(`Estudiante ${student.name} eliminado correctamente`);
+      toast.success(t('admin.deletedOk', { name: student.name }));
     } catch (err) {
-      toast.error(err.response?.data?.error || 'No se pudo eliminar el estudiante');
+      toast.error(err.response?.data?.error || t('admin.deleteFail'));
     } finally {
       setUpdatingId(null);
       setDeleteTarget(null);
@@ -194,9 +198,9 @@ export const AdminStudentsPage = () => {
       setStudents((prev) =>
         prev.map((s) => Number(s.id) === Number(student.id) ? { ...s, status: newStatus } : s)
       );
-      toast.success(newStatus === 'suspended' ? 'Estudiante suspendido' : 'Estudiante reactivado');
+      toast.success(newStatus === 'suspended' ? t('admin.suspendedOk') : t('admin.reactivatedOk'));
     } catch (err) {
-      toast.error(err.response?.data?.error || 'No se pudo actualizar el estado');
+      toast.error(err.response?.data?.error || t('admin.statusFail'));
     } finally {
       setUpdatingId(null);
       setSuspendTarget(null);
@@ -208,7 +212,8 @@ export const AdminStudentsPage = () => {
     setStudents((prev) =>
       prev.map((s) => (Number(s.id) === Number(studentId) ? res.data.student : s))
     );
-    toast.success(`Plan actualizado a ${STUDENT_PLANS.find(p => p.value === planTier)?.label || 'Sin plan'}`);
+    const planName = studentPlanOptions(t).find((p) => p.value === planTier)?.label || t('plan.none');
+    toast.success(t('admin.planUpdated', { plan: planName }));
   };
 
   const SortHeader = ({ label, sortKey: sk }) => (
@@ -222,10 +227,10 @@ export const AdminStudentsPage = () => {
       <div className="dashboard-layout">
         <div className="dashboard-main">
           <div className="dashboard-header">
-            <h1>Estudiantes registrados</h1>
+            <h1>{t('admin.studentsTitle')}</h1>
           </div>
           <div className="error-message">{error}</div>
-          <button type="button" className="button button-secondary" onClick={loadStudents}>Reintentar</button>
+          <button type="button" className="button button-secondary" onClick={loadStudents}>{t('common.retry')}</button>
         </div>
       </div>
     );
@@ -237,12 +242,12 @@ export const AdminStudentsPage = () => {
         <div className="dashboard-header">
           <AdminBreadcrumbs
             items={[
-              { label: 'Mi escuela', to: '/admin' },
-              { label: 'Estudiantes' },
+              { label: t('admin.breadcrumb.school'), to: '/admin' },
+              { label: t('admin.breadcrumb.students') },
             ]}
           />
-          <h1>Estudiantes registrados</h1>
-          <p>Gestiona alumnos, asigna planes premium y consulta sus datos.</p>
+          <h1>{t('admin.studentsTitle')}</h1>
+          <p>{t('admin.studentsSubtitle')}</p>
         </div>
 
         <div className="students-toolbar">
@@ -250,39 +255,39 @@ export const AdminStudentsPage = () => {
             <input
               type="text"
               className="search-input"
-              placeholder="Buscar por nombre, email, usuario o ID..."
+              placeholder={t('admin.searchStudents')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-              aria-label="Buscar estudiantes"
+              aria-label={t('admin.searchAria')}
             />
           </div>
-          <div className="filter-chips" role="group" aria-label="Filtros rápidos">
-            {FILTER_CHIPS.map((chip) => (
+          <div className="filter-chips" role="group" aria-label={t('admin.filtersAria')}>
+            {FILTER_CHIP_VALUES.map((value) => (
               <button
-                key={chip.value}
+                key={value}
                 type="button"
-                className={`filter-chip ${statusFilter === chip.value ? 'active' : ''}`}
-                onClick={() => { setStatusFilter(chip.value); setCurrentPage(1); }}
+                className={`filter-chip ${statusFilter === value ? 'active' : ''}`}
+                onClick={() => { setStatusFilter(value); setCurrentPage(1); }}
               >
-                {chip.label}
+                {t(FILTER_CHIP_KEYS[value])}
               </button>
             ))}
           </div>
-          <button className="button button-secondary small" onClick={() => exportStudentsToCsv(filteredStudents)} title="Exportar a CSV">
-            <UIIcon name="download" size={15} /> CSV
+          <button className="button button-secondary small" onClick={() => exportStudentsToCsv(filteredStudents)} title={t('admin.exportCsv')}>
+            <UIIcon name="download" size={15} /> {t('admin.exportCsv')}
           </button>
-          <button className="button button-ghost small" onClick={() => setShowShortcuts(true)} title="Atajos de teclado" aria-label="Atajos de teclado">
+          <button className="button button-ghost small" onClick={() => setShowShortcuts(true)} title={t('admin.shortcuts')} aria-label={t('admin.shortcuts')}>
             <UIIcon name="keyboard" size={16} />
           </button>
         </div>
 
         {selectedIds.size > 0 && (
           <div className="bulk-actions-bar">
-            <span className="bulk-count">{selectedIds.size} seleccionado(s)</span>
-            <button className="button button-secondary small" onClick={() => handleBulkAction('activate')}>Activar</button>
-            <button className="button button-secondary small" onClick={() => handleBulkAction('deactivate')}>Desactivar</button>
-            <button className="button button-danger small" onClick={() => handleBulkAction('delete')}>Eliminar</button>
-            <button className="button button-secondary small" onClick={() => setSelectedIds(new Set())}>Deseleccionar</button>
+            <span className="bulk-count">{t('admin.selected', { count: selectedIds.size })}</span>
+            <button className="button button-secondary small" onClick={() => handleBulkAction('activate')}>{t('admin.activate')}</button>
+            <button className="button button-secondary small" onClick={() => handleBulkAction('deactivate')}>{t('admin.deactivate')}</button>
+            <button className="button button-danger small" onClick={() => handleBulkAction('delete')}>{t('admin.delete')}</button>
+            <button className="button button-secondary small" onClick={() => setSelectedIds(new Set())}>{t('admin.clearSelection')}</button>
           </div>
         )}
 
@@ -304,10 +309,10 @@ export const AdminStudentsPage = () => {
         ) : pageStudents.length === 0 ? (
           <div className="empty-state">
             <span className="empty-state-icon" aria-hidden="true"><UIIcon name="user" size={28} /></span>
-            <p>{search || statusFilter !== 'all' ? 'No se encontraron estudiantes con los filtros actuales.' : 'No hay estudiantes registrados todavía.'}</p>
+            <p>{search || statusFilter !== 'all' ? t('admin.emptyFiltered') : t('admin.emptyNone')}</p>
             {(search || statusFilter !== 'all') && (
               <button type="button" className="button button-secondary" onClick={() => { setSearch(''); setStatusFilter('all'); }}>
-                Limpiar filtros
+                {t('admin.clearFilters')}
               </button>
             )}
           </div>
@@ -315,24 +320,24 @@ export const AdminStudentsPage = () => {
           <div className="students-panel">
             <div className="students-summary">
               <span className="students-count">{filteredStudents.length}</span>
-              <span>estudiante{filteredStudents.length !== 1 ? 's' : ''} en total</span>
-              {search && <span className="filter-hint">· filtrados por &quot;{search}&quot;</span>}
+              <span>{t('admin.countLabel', { plural: filteredStudents.length !== 1 ? 's' : '' })}</span>
+              {search ? <span className="filter-hint">{t('admin.filteredBy', { search })}</span> : null}
             </div>
             <div className="content-table-wrapper">
               <table className="content-table students-table">
                 <thead>
                   <tr>
                     <th className="th-checkbox">
-                      <input type="checkbox" onChange={handleSelectAll} checked={selectedIds.size === pageStudents.length && pageStudents.length > 0} aria-label="Seleccionar todos" />
+                      <input type="checkbox" onChange={handleSelectAll} checked={selectedIds.size === pageStudents.length && pageStudents.length > 0} aria-label={t('admin.selectAll')} />
                     </th>
-                    <th>Foto</th>
-                    <SortHeader label="Nombre" sortKey="name" />
-                    <SortHeader label="Correo" sortKey="email" />
-                    <th>Estado</th>
-                    <SortHeader label="Plan" sortKey="plan_tier" />
-                    <th>Asignar plan</th>
-                    <SortHeader label="Registro" sortKey="created_at" />
-                    <th>Acciones</th>
+                    <th>{t('admin.col.photo')}</th>
+                    <SortHeader label={t('admin.col.name')} sortKey="name" />
+                    <SortHeader label={t('admin.col.email')} sortKey="email" />
+                    <th>{t('admin.col.status')}</th>
+                    <SortHeader label={t('admin.col.plan')} sortKey="plan_tier" />
+                    <th>{t('admin.col.assign')}</th>
+                    <SortHeader label={t('admin.col.registered')} sortKey="created_at" />
+                    <th>{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -343,7 +348,7 @@ export const AdminStudentsPage = () => {
                     return (
                       <tr key={student.id} className={selectedIds.has(student.id) ? 'row-selected' : ''} style={{ cursor: 'pointer' }}>
                         <td className="td-checkbox" onClick={(e) => e.stopPropagation()}>
-                          <input type="checkbox" checked={selectedIds.has(student.id)} onChange={() => handleSelectOne(student.id)} aria-label={`Seleccionar ${student.name}`} />
+                          <input type="checkbox" checked={selectedIds.has(student.id)} onChange={() => handleSelectOne(student.id)} aria-label={t('admin.selectOne', { name: student.name })} />
                         </td>
                         <td onClick={() => setProfileTarget(student)}>
                           <UserAvatar
@@ -365,12 +370,12 @@ export const AdminStudentsPage = () => {
                             disabled={isUpdating}
                             onClick={() => setPlanTarget(student)}
                           >
-                            {currentPlan ? 'Cambiar' : 'Asignar'}
+                            {currentPlan ? t('admin.change') : t('admin.assign')}
                           </button>
                         </td>
                         <td>
                           {student.created_at
-                            ? new Date(student.created_at).toLocaleDateString('es-CR')
+                            ? new Date(student.created_at).toLocaleDateString(dateLocale)
                             : '—'}
                         </td>
                         <td>
@@ -382,7 +387,7 @@ export const AdminStudentsPage = () => {
                                 disabled={isUpdating}
                                 onClick={() => setSuspendTarget(student)}
                               >
-                                Reactivar
+                                {t('admin.reactivate')}
                               </button>
                             ) : (
                               <button
@@ -391,7 +396,7 @@ export const AdminStudentsPage = () => {
                                 disabled={isUpdating}
                                 onClick={() => setSuspendTarget(student)}
                               >
-                                Suspender
+                                {t('admin.suspend')}
                               </button>
                             )}
                             <button
@@ -400,7 +405,7 @@ export const AdminStudentsPage = () => {
                               disabled={isUpdating}
                               onClick={() => setDeleteTarget(student)}
                             >
-                              {isUpdating ? '...' : 'Eliminar'}
+                              {isUpdating ? '...' : t('admin.delete')}
                             </button>
                           </div>
                         </td>
@@ -418,17 +423,17 @@ export const AdminStudentsPage = () => {
                   disabled={safePage <= 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 >
-                  Anterior
+                  {t('common.previous')}
                 </button>
                 <span className="pagination-info">
-                  Página {safePage} de {totalPages}
+                  {t('common.pageOf', { page: safePage, total: totalPages })}
                 </span>
                 <button
                   className="button button-ghost small"
                   disabled={safePage >= totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 >
-                  Siguiente
+                  {t('common.next')}
                 </button>
               </div>
             )}
@@ -438,9 +443,9 @@ export const AdminStudentsPage = () => {
 
       {deleteTarget && (
         <ConfirmDialog
-          title="Eliminar estudiante"
-          message={`¿Eliminar la cuenta de ${deleteTarget.name} (${deleteTarget.email})? Esta acción no se puede deshacer.`}
-          confirmLabel="Eliminar"
+          title={t('admin.deleteTitle')}
+          message={t('admin.deleteMsg', { name: deleteTarget.name, email: deleteTarget.email })}
+          confirmLabel={t('admin.delete')}
           onConfirm={() => handleDeleteStudent(deleteTarget)}
           onCancel={() => setDeleteTarget(null)}
         />
@@ -448,13 +453,13 @@ export const AdminStudentsPage = () => {
 
       {suspendTarget && (
         <ConfirmDialog
-          title={suspendTarget.status === 'suspended' ? 'Reactivar estudiante' : 'Suspender estudiante'}
+          title={suspendTarget.status === 'suspended' ? t('admin.reactivateTitle') : t('admin.suspendTitle')}
           message={
             suspendTarget.status === 'suspended'
-              ? `¿Reactivar la cuenta de ${suspendTarget.name}? Podrá iniciar sesión nuevamente.`
-              : `Esto evitará que ${suspendTarget.name} inicie sesión. ¿Confirmar suspensión?`
+              ? t('admin.reactivateMsg', { name: suspendTarget.name })
+              : t('admin.suspendMsg', { name: suspendTarget.name })
           }
-          confirmLabel={suspendTarget.status === 'suspended' ? 'Reactivar' : 'Suspender'}
+          confirmLabel={suspendTarget.status === 'suspended' ? t('admin.reactivate') : t('admin.suspend')}
           onConfirm={() => handleSuspendStudent(suspendTarget)}
           onCancel={() => setSuspendTarget(null)}
           destructive={suspendTarget.status !== 'suspended'}

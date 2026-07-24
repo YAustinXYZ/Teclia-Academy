@@ -97,7 +97,9 @@
   gap: 1.2rem;
   padding: 1.6rem 1.75rem;
   border-radius: var(--radius-lg);
-  background: linear-gradient(120deg, rgba(215, 183, 97, 0.12), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(120deg, var(--accent-muted), var(--card));
+  border: 1px solid var(--border);
+  color: var(--foreground);
   border: 1px solid rgba(215, 183, 97, 0.22);
   margin-bottom: 1.5rem;
 }
@@ -128,6 +130,7 @@
 }
 
 .welcome-banner h1 { font-size: 1.7rem; margin: 0 0 0.2rem; }
+.welcome-banner h1 { margin: 0 0 0.35rem; color: var(--foreground); }
 .welcome-banner p { margin: 0; color: var(--muted-strong); }
 .welcome-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.65rem; }
 
@@ -181,6 +184,7 @@
 }
 .dash-stat:hover { transform: translateY(-3px); border-color: rgba(215, 183, 97, 0.3); }
 .dash-stat-top { display: flex; align-items: center; gap: 0.55rem; color: var(--muted); font-size: 0.85rem; }
+.dash-stat-value { color: var(--foreground); font-weight: 750; }
 .dash-stat-icon { font-size: 1.15rem; }
 .dash-stat-value { font-size: 1.9rem; font-weight: 800; margin-top: 0.4rem; font-variant-numeric: tabular-nums; }
 
@@ -227,6 +231,7 @@
 
 .tc-body { padding: 1.1rem 1.15rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
 .tc-body h3 { font-family: 'Manrope', system-ui, sans-serif; font-size: 1.02rem; margin: 0; line-height: 1.3; }
+.tc-body h3 { margin: 0 0 0.4rem; color: var(--foreground); }
 .tc-desc { margin: 0; color: var(--muted); font-size: 0.88rem; line-height: 1.5; flex: 1; }
 .tc-author { margin: 0; color: var(--muted); font-size: 0.8rem; }
 .tc-actions { margin-top: 0.35rem; }

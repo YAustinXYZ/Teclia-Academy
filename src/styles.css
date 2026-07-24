@@ -156,7 +156,6 @@ html[data-theme='light'] .field-hint,
 html[data-theme='light'] .avatar-help-text,
 html[data-theme='light'] .section-copy,
 html[data-theme='light'] .welcome-banner p,
-html[data-theme='light'] .auth-subtitle,
 html[data-theme='light'] .tc-desc,
 html[data-theme='light'] .tc-author,
 html[data-theme='light'] .text-muted,
@@ -2572,11 +2571,25 @@ h1 {
 .form-group input {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.9rem;
-  padding: 0.9rem 1.2rem;
+  border-radius: 1.25rem;
+  padding: 0.95rem 1.25rem;
   color: #f5f5f5;
   font-size: 0.95rem;
   transition: border-color 180ms ease, background 180ms ease;
+}
+
+html[data-theme='light'] .auth-card .form-group label {
+  color: #1f1b15;
+}
+
+html[data-theme='light'] .auth-card .form-group input {
+  background: #fff;
+  color: #14110d;
+  border-color: rgba(20, 17, 13, 0.18);
+}
+
+html[data-theme='light'] .auth-card .auth-subtitle {
+  color: #40382f;
 }
 
 .form-group input:focus {

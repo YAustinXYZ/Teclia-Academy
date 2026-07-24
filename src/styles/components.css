@@ -331,29 +331,65 @@
 .auth-brand {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  border-radius: 1.85rem 0 0 1.85rem;
   padding: 3rem 2.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 1.5rem;
-  background: radial-gradient(circle at 20% 20%, rgba(215, 183, 97, 0.2), transparent 55%),
-    linear-gradient(160deg, #12100a, #060606);
-  border: 1px solid var(--border);
+  color: #f7f5f0;
+  background: radial-gradient(circle at 20% 20%, rgba(215, 183, 97, 0.22), transparent 55%),
+    linear-gradient(160deg, #1a160e, #0a0908);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-right: none;
 }
 
-.auth-brand h2 { font-size: clamp(1.8rem, 3vw, 2.6rem); line-height: 1.1; }
-.auth-brand p { color: var(--muted-strong); max-width: 26rem; line-height: 1.6; }
+.auth-brand h2 {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1.1;
+  color: #fff8ec;
+  margin: 0;
+}
+
+.auth-brand p {
+  color: #e4dccb;
+  max-width: 26rem;
+  line-height: 1.6;
+  margin: 0;
+}
 
 .auth-brand-list { display: grid; gap: 0.85rem; margin: 0.5rem 0 0; padding: 0; list-style: none; }
-.auth-brand-list li { display: flex; align-items: center; gap: 0.7rem; color: var(--muted-strong); }
-.auth-brand-list .lp-check { width: 1.4rem; height: 1.4rem; }
+.auth-brand-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: #f0e8d8;
+  font-weight: 500;
+}
+.auth-brand-list .lp-check {
+  width: 1.4rem;
+  height: 1.4rem;
+  color: #4ade80;
+  flex-shrink: 0;
+}
+
+/* Keep brand panel readable even when app theme is light */
+html[data-theme='light'] .auth-brand,
+html[data-theme='light'] .auth-brand h2,
+html[data-theme='light'] .auth-brand p,
+html[data-theme='light'] .auth-brand-list li {
+  color: #f7f5f0;
+}
+
+html[data-theme='light'] .auth-brand h2 { color: #fff8ec; }
+html[data-theme='light'] .auth-brand p { color: #e4dccb; }
+html[data-theme='light'] .auth-brand-list li { color: #f0e8d8; }
+html[data-theme='light'] .auth-brand-list .lp-check { color: #4ade80; }
 
 .auth-split .auth-container { max-width: none; display: flex; align-items: center; }
 .auth-split .auth-card {
   width: 100%;
-  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  border-radius: 0 1.85rem 1.85rem 0;
   border-left: none;
   height: 100%;
   display: flex;

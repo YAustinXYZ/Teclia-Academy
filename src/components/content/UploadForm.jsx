@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import api from '../../services/api.js';
 import { useContent } from '../../context/ContentContext.jsx';
-import { CONTENT_PLANS } from '../../utils/plans.js';
+import { contentPlanOptions } from '../../utils/plans.js';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 import { UIIcon } from '../common/Icons.jsx';
 
 export const UploadForm = () => {
+  const { t } = usePreferences();
+  const plans = contentPlanOptions(t);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState('video');
@@ -128,7 +131,7 @@ export const UploadForm = () => {
         <div className="form-group">
           <label htmlFor="planTier">Plan requerido</label>
           <select id="planTier" value={planTier} onChange={(e) => setPlanTier(e.target.value)}>
-            {CONTENT_PLANS.map((plan) => (
+            {plans.map((plan) => (
               <option key={plan.value} value={plan.value}>
                 {plan.label}
               </option>

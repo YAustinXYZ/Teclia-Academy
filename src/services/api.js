@@ -7,10 +7,10 @@ const resolveApiBase = () => {
   if (configured) {
     return configured.replace(/\/$/, '');
   }
-  if (import.meta.env.PROD) {
-    return '/api';
-  }
-  return 'http://localhost:3001/api';
+  // Same-origin /api:
+  // - Vite dev: proxied to localhost:3001 (avoids CSP/CORS blocks)
+  // - Vercel prod: rewritten to the serverless function
+  return '/api';
 };
 
 export const BACKEND_BASE_URL = resolveApiBase().replace(/\/api$/, '') || '';
@@ -69,11 +69,12 @@ export const authService = {
     api.post('/auth/logout'),
   getCurrentUser: () =>
     api.get('/auth/me'),
-  updateProfile: (name, avatar) => {
+  updateProfile: (name, avatar, options = {}) => {
     if (avatar instanceof FormData) {
+      // Let the browser set multipart boundary — forcing Content-Type breaks file uploads.
       return api.patch('/auth/profile', avatar, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': undefined,
         },
       });
     }
@@ -81,6 +82,7 @@ export const authService = {
     const payload = {};
     if (name) payload.name = name;
     if (avatar) payload.avatarUrl = avatar;
+    if (options.removeAvatar) payload.removeAvatar = true;
     return api.patch('/auth/profile', payload);
   },
   changePassword: (currentPassword, newPassword) =>

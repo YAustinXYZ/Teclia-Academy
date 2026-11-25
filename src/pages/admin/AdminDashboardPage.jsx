@@ -2,7 +2,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Icon, UIIcon } from '../../components/common/Icons.jsx';
 import { PersonaBanner } from '../../components/common/PersonaBanner.jsx';
+import { AdminBreadcrumbs } from '../../components/common/AdminBreadcrumbs.jsx';
 import { useContent } from '../../context/ContentContext.jsx';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { statsService } from '../../services/api.js';
 import { useKeyboardShortcuts, KeyboardShortcutsHelp } from '../../components/common/KeyboardShortcuts.jsx';
@@ -34,6 +36,7 @@ export const AdminDashboardPage = () => {
   const navigate = useNavigate();
   const { content } = useContent();
   const { user } = useAuth();
+  const { t } = usePreferences();
   const [pageVisits, setPageVisits] = useState(null);
   const [studentCount, setStudentCount] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,25 +74,26 @@ export const AdminDashboardPage = () => {
   return (
     <div className="dashboard-layout">
       <div className="dashboard-main">
+        <AdminBreadcrumbs items={[{ label: t('admin.breadcrumb.school') }]} />
         <PersonaBanner
-          name="Panel del instructor"
-          subtitle={`Bienvenido, ${user?.name || ''}. Gestiona tus lecciones y recursos para los estudiantes.`}
+          name={t('admin.banner.title')}
+          subtitle={t('admin.banner.subtitle', { name: user?.name || '' })}
           initial={user?.name?.charAt(0)?.toUpperCase() || 'A'}
           chips={[
-            { label: 'Administrador', variant: 'gold' },
+            { label: t('admin.banner.admin'), variant: 'gold' },
             { label: user?.email || '', },
-            { label: 'Cuenta activa', variant: 'success' },
+            { label: t('admin.banner.active'), variant: 'success' },
           ]}
           actions={(
             <>
-              <Link to="/admin/upload" className="button button-primary">+ Crear contenido</Link>
-              <Link to="/admin/students" className="button button-secondary">Estudiantes</Link>
+              <Link to="/admin/upload" className="button button-primary">+ {t('admin.createContent')}</Link>
+              <Link to="/admin/students" className="button button-secondary">{t('admin.students')}</Link>
             </>
           )}
         />
 
         <div className="admin-stats">
-          <h2>Resumen del panel</h2>
+          <h2>{t('admin.summary')}</h2>
           <div className="stats-grid">
             {loading ? (
               <>
@@ -102,64 +106,64 @@ export const AdminDashboardPage = () => {
               </>
             ) : (
               <>
-                <StatCard label="Visitas a la página" value={pageVisits} icon={<UIIcon name="eye" size={18} />} trend={12} highlight />
-                <StatCard label="Estudiantes" value={studentCount} icon={<UIIcon name="users" size={18} />} trend={8} />
-                <StatCard label="Total contenidos" value={stats.total} icon={<UIIcon name="book" size={18} />} />
-                <StatCard label="Videos" value={stats.videos} icon={<UIIcon name="video" size={18} />} />
-                <StatCard label="PDFs" value={stats.pdfs} icon={<UIIcon name="file" size={18} />} />
-                <StatCard label="Audios" value={stats.audios} icon={<UIIcon name="music" size={18} />} highlight />
+                <StatCard label={t('admin.pageVisits')} value={pageVisits} icon={<UIIcon name="eye" size={18} />} trend={12} highlight />
+                <StatCard label={t('admin.stats.students')} value={studentCount} icon={<UIIcon name="users" size={18} />} trend={8} />
+                <StatCard label={t('admin.totalContent')} value={stats.total} icon={<UIIcon name="book" size={18} />} />
+                <StatCard label={t('admin.stats.videos')} value={stats.videos} icon={<UIIcon name="video" size={18} />} />
+                <StatCard label={t('admin.stats.pdfs')} value={stats.pdfs} icon={<UIIcon name="file" size={18} />} />
+                <StatCard label={t('admin.stats.audios')} value={stats.audios} icon={<UIIcon name="music" size={18} />} highlight />
               </>
             )}
           </div>
         </div>
 
         <div className="admin-quick-actions">
-          <h2>Acciones rápidas</h2>
+          <h2>{t('admin.quickActions')}</h2>
           <div className="quick-actions-grid">
             <Link to="/admin/students" className="action-card">
               <div className="action-icon"><UIIcon name="plus" size={20} /></div>
-              <h3>Añadir estudiante</h3>
-              <p>Registrar nuevo alumno en la plataforma</p>
+              <h3>{t('admin.addStudent')}</h3>
+              <p>{t('admin.addStudentDesc')}</p>
             </Link>
             <Link to="/admin/upload" className="action-card">
               <div className="action-icon"><UIIcon name="upload" size={20} /></div>
-              <h3>Crear contenido</h3>
-              <p>Subir video, PDF, audio o imagen</p>
+              <h3>{t('admin.createContent')}</h3>
+              <p>{t('admin.createContentDesc')}</p>
             </Link>
             <Link to="/admin/content" className="action-card">
               <div className="action-icon"><UIIcon name="clipboard" size={20} /></div>
-              <h3>Gestionar contenido</h3>
-              <p>Revisar y administrar recursos</p>
+              <h3>{t('admin.manageContent')}</h3>
+              <p>{t('admin.manageContentDesc')}</p>
             </Link>
             <Link to="/admin/students" className="action-card">
               <div className="action-icon"><UIIcon name="users" size={20} /></div>
-              <h3>Ver estudiantes</h3>
-              <p>Consultar alumnos y sus planes</p>
+              <h3>{t('admin.viewStudents')}</h3>
+              <p>{t('admin.viewStudentsDesc')}</p>
             </Link>
-            <a href="/admin" className="action-card" onClick={(e) => { e.preventDefault(); alert('Reportes próximamente'); }}>
+            <a href="/admin" className="action-card" onClick={(e) => { e.preventDefault(); alert(t('admin.comingSoon.reports')); }}>
               <div className="action-icon"><UIIcon name="chart" size={20} /></div>
-              <h3>Ver reportes</h3>
-              <p>Estadísticas y análisis de plataforma</p>
+              <h3>{t('admin.reports')}</h3>
+              <p>{t('admin.reportsDesc')}</p>
             </a>
-            <a href="/admin" className="action-card" onClick={(e) => { e.preventDefault(); alert('Exportación próximamente'); }}>
+            <a href="/admin" className="action-card" onClick={(e) => { e.preventDefault(); alert(t('admin.comingSoon.export')); }}>
               <div className="action-icon"><UIIcon name="download" size={20} /></div>
-              <h3>Exportar datos</h3>
-              <p>Descargar datos de estudiantes</p>
+              <h3>{t('admin.export')}</h3>
+              <p>{t('admin.exportDesc')}</p>
             </a>
           </div>
         </div>
 
         <div className="admin-recent">
           <div className="content-header">
-            <h2>Contenido reciente</h2>
-            <button className="button button-ghost small" onClick={() => setShowShortcuts(true)} title="Atajos de teclado" aria-label="Atajos de teclado">
-              <UIIcon name="keyboard" size={16} /> Atajos
+            <h2>{t('admin.recent')}</h2>
+            <button className="button button-ghost small" onClick={() => setShowShortcuts(true)} title={t('admin.shortcuts')} aria-label={t('admin.shortcuts')}>
+              <UIIcon name="keyboard" size={16} /> {t('admin.shortcutsShort')}
             </button>
           </div>
           {recentContent.length === 0 ? (
             <div className="empty-state">
               <span className="empty-state-icon" aria-hidden="true"><UIIcon name="video" size={26} /></span>
-              <p>No hay contenido aún. <Link to="/admin/upload">Añade tu primer contenido</Link></p>
+              <p>{t('admin.noContentYet')} <Link to="/admin/upload">{t('admin.addFirst')}</Link></p>
             </div>
           ) : (
             <div className="recent-list">

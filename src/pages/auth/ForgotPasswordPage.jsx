@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../../services/api.js';
-import { validatePassword, PASSWORD_HINT } from '../../utils/password.js';
+import { validatePassword, getPasswordHint } from '../../utils/password.js';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 
 const normalizeEmail = (email) => email.trim().toLowerCase();
 
 export const ForgotPasswordPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = usePreferences();
   const recoveryEmail = normalizeEmail(
     location.state?.email || sessionStorage.getItem('recoveryEmail') || ''
   );
@@ -26,7 +28,7 @@ export const ForgotPasswordPage = () => {
     if (!recoveryEmail) {
       navigate('/auth/login', {
         replace: true,
-        state: { message: 'Primero ingresa tu correo en el login para recuperar la contraseña.' },
+        state: { message: t('auth.forgot.needEmail') },
       });
       return;
     }
@@ -41,14 +43,14 @@ export const ForgotPasswordPage = () => {
         setAccountVerified(true);
       } catch (err) {
         setAccountVerified(false);
-        setError(err.response?.data?.error || 'No existe una cuenta registrada con este correo.');
+        setError(err.response?.data?.error || t('auth.forgot.noAccount'));
       } finally {
         setVerifying(false);
       }
     };
 
     verifyAccount();
-  }, [recoveryEmail, navigate]);
+  }, [recoveryEmail, navigate, t]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,22 +63,22 @@ export const ForgotPasswordPage = () => {
     try {
       if (!sent) {
         const res = await authService.forgotPassword(recoveryEmail);
-        const successMessage = res.data.message || 'Se ha enviado un PIN de recuperación al correo. Revisa tu bandeja de entrada.';
+        const successMessage = res.data.message || t('auth.forgot.sent');
         setMessage(successMessage);
         setSent(true);
       } else {
-        const passwordError = validatePassword(newPassword);
+        const passwordError = validatePassword(newPassword, t);
         if (passwordError) {
           setError(passwordError);
           return;
         }
         await authService.resetPassword(recoveryEmail, pin, newPassword);
         sessionStorage.removeItem('recoveryEmail');
-        setMessage('Contraseña restablecida correctamente. Redirigiendo al login...');
+        setMessage(t('auth.forgot.resetOk'));
         setTimeout(() => navigate('/auth/login'), 1300);
       }
     } catch (err) {
-      setError(err.response?.data?.error || (sent ? 'No se pudo restablecer la contraseña.' : 'No se pudo enviar el correo de recuperación.'));
+      setError(err.response?.data?.error || (sent ? t('auth.forgot.resetFail') : t('auth.forgot.sendFail')));
     } finally {
       setLoading(false);
     }
@@ -90,22 +92,20 @@ export const ForgotPasswordPage = () => {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-card">
-          <h1>{sent ? 'Restablecer contraseña' : 'Recuperar contraseña'}</h1>
+          <h1>{sent ? t('auth.forgot.reset') : t('auth.forgot.title')}</h1>
           <p className="auth-subtitle">
-            {sent
-              ? 'Introduce el PIN que recibiste y escribe una nueva contraseña.'
-              : 'Usaremos el correo que ingresaste en el login para enviarte un PIN de recuperación.'}
+            {sent ? t('auth.forgot.sentSubtitle') : t('auth.forgot.introSubtitle')}
           </p>
 
           {error && <div key={error} className="error-message animate-shake">{error}</div>}
           {message && <div className="success-message">{message}</div>}
 
           {verifying ? (
-            <p className="auth-subtitle">Verificando cuenta...</p>
+            <p className="auth-subtitle">{t('auth.forgot.verifying')}</p>
           ) : (
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="form-group">
-                <label htmlFor="recover-email">Email</label>
+                <label htmlFor="recover-email">{t('common.email')}</label>
                 <input
                   id="recover-email"
                   type="email"
@@ -118,16 +118,16 @@ export const ForgotPasswordPage = () => {
 
               {!accountVerified ? (
                 <Link to="/auth/login" className="button button-secondary button-block">
-                  Volver al login
+                  {t('auth.forgot.back')}
                 </Link>
               ) : !sent ? (
                 <button type="submit" disabled={loading} className="button button-primary button-block">
-                  {loading ? 'Enviando PIN...' : 'Enviar PIN de recuperación'}
+                  {loading ? t('auth.forgot.sending') : t('auth.forgot.sendPinFull')}
                 </button>
               ) : (
                 <>
                   <div className="form-group">
-                    <label htmlFor="recover-pin">PIN de recuperación</label>
+                    <label htmlFor="recover-pin">{t('auth.forgot.pin')}</label>
                     <input
                       id="recover-pin"
                       type="text"
@@ -138,19 +138,19 @@ export const ForgotPasswordPage = () => {
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="recover-password">Nueva contraseña</label>
+                    <label htmlFor="recover-password">{t('auth.forgot.newPassword')}</label>
                     <input
                       id="recover-password"
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
-                    placeholder="Nueva contraseña"
-                  />
-                  <p className="field-hint">{PASSWORD_HINT}</p>
-                </div>
+                      placeholder={t('auth.forgot.newPassword')}
+                    />
+                    <p className="field-hint">{getPasswordHint(t)}</p>
+                  </div>
                   <button type="submit" disabled={loading} className="button button-primary button-block">
-                    {loading ? 'Restableciendo...' : 'Restablecer contraseña'}
+                    {loading ? t('auth.forgot.resetting') : t('auth.forgot.reset')}
                   </button>
                 </>
               )}
@@ -170,10 +170,10 @@ export const ForgotPasswordPage = () => {
                   setNewPassword('');
                 }}
               >
-                Volver a enviar PIN
+                {t('auth.forgot.resend')}
               </button>
             ) : (
-              <Link to="/auth/login">¿Recordaste tu contraseña? Iniciar sesión</Link>
+              <Link to="/auth/login">{t('auth.forgot.remember')}</Link>
             )}
           </p>
         </div>

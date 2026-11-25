@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authService } from '../../services/api.js';
-import { validatePassword, PASSWORD_HINT } from '../../utils/password.js';
+import { validatePassword, getPasswordHint } from '../../utils/password.js';
 import { UIIcon } from '../../components/common/Icons.jsx';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 
 export const ResetPasswordPage = () => {
   const location = useLocation();
+  const { t } = usePreferences();
   const [email, setEmail] = useState(location.state?.email || '');
   const [pin, setPin] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -22,16 +24,16 @@ export const ResetPasswordPage = () => {
     setError(null);
 
     try {
-      const passwordError = validatePassword(newPassword);
+      const passwordError = validatePassword(newPassword, t);
       if (passwordError) {
         setError(passwordError);
         return;
       }
       await authService.resetPassword(email, pin, newPassword);
-      setMessage('Contraseña restablecida correctamente. Redirigiendo al login...');
+      setMessage(t('auth.forgot.resetOk'));
       setTimeout(() => navigate('/auth/login'), 1300);
     } catch (err) {
-      setError(err.response?.data?.error || 'No se pudo restablecer la contraseña.');
+      setError(err.response?.data?.error || t('auth.forgot.resetFail'));
     } finally {
       setLoading(false);
     }
@@ -41,20 +43,20 @@ export const ResetPasswordPage = () => {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-card">
-          <h1>Restablecer contraseña</h1>
-          <p className="auth-subtitle">Introduce tu correo, el PIN recibido y una nueva contraseña.</p>
+          <h1>{t('auth.forgot.reset')}</h1>
+          <p className="auth-subtitle">{t('auth.forgot.sentSubtitle')}</p>
 
           {error && <div key={error} className="error-message animate-shake">{error}</div>}
           {message && <div className="success-message">{message}</div>}
           {location.state?.email && (
             <div className="info-message">
-              Se envió el PIN a <strong>{location.state.email}</strong>. Usa ese código aquí o haz clic en "Volver a enviar" si no lo recibiste.
+              {t('auth.reset.pinSent', { email: location.state.email })}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
-              <label htmlFor="reset-email">Email</label>
+              <label htmlFor="reset-email">{t('common.email')}</label>
               <input
                 id="reset-email"
                 type="email"
@@ -65,7 +67,7 @@ export const ResetPasswordPage = () => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="reset-pin">PIN de recuperación</label>
+              <label htmlFor="reset-pin">{t('auth.forgot.pin')}</label>
               <input
                 id="reset-pin"
                 type="text"
@@ -76,7 +78,7 @@ export const ResetPasswordPage = () => {
               />
             </div>
             <div className="form-group password-group">
-              <label htmlFor="reset-password">Nueva contraseña</label>
+              <label htmlFor="reset-password">{t('auth.forgot.newPassword')}</label>
               <div className="password-field">
                 <input
                   id="reset-password"
@@ -89,20 +91,21 @@ export const ResetPasswordPage = () => {
                 <button
                   type="button"
                   className="password-toggle"
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showPassword ? t('common.hidePassword') : t('common.showPassword')}
                   onClick={() => setShowPassword((prev) => !prev)}
                 >
                   <UIIcon name={showPassword ? 'eyeOff' : 'eye'} size={18} />
                 </button>
               </div>
+              <p className="field-hint">{getPasswordHint(t)}</p>
             </div>
             <button type="submit" disabled={loading} className="button button-primary button-block">
-              {loading ? <span className="btn-loading"><span className="spinner" /> Restableciendo…</span> : 'Restablecer contraseña'}
+              {loading ? <span className="btn-loading"><span className="spinner" /> {t('auth.forgot.resetting')}</span> : t('auth.forgot.reset')}
             </button>
           </form>
 
           <p className="auth-footer">
-            ¿No recibiste el PIN? <Link to="/auth/forgot-password">Volver a enviar</Link>
+            {t('auth.reset.noPin')} <Link to="/auth/forgot-password">{t('auth.forgot.resend')}</Link>
           </p>
         </div>
       </div>

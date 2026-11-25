@@ -14,6 +14,11 @@ export default defineConfig({
         target: process.env.VITE_DEV_API_PROXY || 'http://localhost:3001',
         changeOrigin: true,
       },
+      // Local avatars/files when Backend LOCAL_UPLOADS=true
+      '/uploads': {
+        target: process.env.VITE_DEV_API_PROXY || 'http://localhost:3001',
+        changeOrigin: true,
+      },
     },
   },
 })

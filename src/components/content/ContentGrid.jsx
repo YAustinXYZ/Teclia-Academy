@@ -1,15 +1,10 @@
 import { useState } from 'react';
 import { Icon, UIIcon } from '../common/Icons.jsx';
+import { usePreferences } from '../../context/PreferencesContext.jsx';
 import { planLabel } from '../../utils/plans.js';
 import { ContentCard } from './ContentCard.jsx';
 
-const FILTERS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'video', label: 'Video' },
-  { value: 'pdf', label: 'PDF' },
-  { value: 'audio', label: 'Audio' },
-  { value: 'image', label: 'Imagen' },
-];
+const FILTER_VALUES = ['all', 'video', 'pdf', 'audio', 'image'];
 
 const SkeletonCard = () => (
   <div className="skeleton-card" aria-hidden="true">
@@ -24,6 +19,7 @@ const SkeletonCard = () => (
 
 export const ContentGrid = ({ content = [], onDelete, isAdmin = false, user = null, loading = false }) => {
   const [filter, setFilter] = useState('all');
+  const { t } = usePreferences();
 
   const filteredContent = filter === 'all'
     ? content
@@ -34,15 +30,16 @@ export const ContentGrid = ({ content = [], onDelete, isAdmin = false, user = nu
   return (
     <div className="content-section">
       <div className="content-header">
-        <h2>Contenido</h2>
+        <h2>{t('content.title')}</h2>
         <div className="content-filters tc-filters">
-          {FILTERS.map((f) => (
+          {FILTER_VALUES.map((value) => (
             <button
-              key={f.value}
-              className={`filter-btn ${filter === f.value ? 'active' : ''}`}
-              onClick={() => setFilter(f.value)}
+              key={value}
+              type="button"
+              className={`filter-btn ${filter === value ? 'active' : ''}`}
+              onClick={() => setFilter(value)}
             >
-              {f.label}
+              {t(`content.filter.${value}`)}
             </button>
           ))}
         </div>
@@ -55,19 +52,23 @@ export const ContentGrid = ({ content = [], onDelete, isAdmin = false, user = nu
       ) : filteredContent.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state-icon" aria-hidden="true"><UIIcon name="music" size={26} /></span>
-          <p>No hay contenido {filter !== 'all' ? `de tipo ${filter}` : 'disponible'} por ahora.</p>
-          <p className="text-muted">Vuelve pronto: se añaden recursos con frecuencia.</p>
+          <p>
+            {filter === 'all'
+              ? t('content.empty')
+              : t('content.emptyType', { type: t(`content.filter.${filter}`) })}
+          </p>
+          <p className="text-muted">{t('content.emptyHint')}</p>
         </div>
       ) : isAdmin ? (
         <div className="content-table-wrapper">
           <table className="content-table">
             <thead>
               <tr>
-                <th>Título</th>
-                <th>Tipo</th>
-                <th>Autor</th>
-                <th>Plan</th>
-                <th>Acciones</th>
+                <th>{t('content.col.title')}</th>
+                <th>{t('content.col.type')}</th>
+                <th>{t('content.col.author')}</th>
+                <th>{t('content.col.plan')}</th>
+                <th>{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -78,16 +79,16 @@ export const ContentGrid = ({ content = [], onDelete, isAdmin = false, user = nu
                       <span className="content-icon-inline">{getIcon(item.type)}</span>
                       <div>
                         <div className="row-title">{item.title}</div>
-                        <div className="row-desc">{item.description || 'Sin descripción'}</div>
+                        <div className="row-desc">{item.description || t('common.noDescription')}</div>
                       </div>
                     </div>
                   </td>
                   <td><span className="badge small">{item.type.toUpperCase()}</span></td>
                   <td>{item.uploaded_by_name}</td>
-                  <td><span className="badge small">{planLabel(item.plan_tier || (item.is_free ? 'free' : 'basico'))}</span></td>
+                  <td><span className="badge small">{planLabel(item.plan_tier || (item.is_free ? 'free' : 'basico'), t)}</span></td>
                   <td className="td-actions">
-                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="button button-secondary small">Ver</a>
-                    <button onClick={() => onDelete(item.id)} className="button button-danger small">Eliminar</button>
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="button button-secondary small">{t('common.view')}</a>
+                    <button type="button" onClick={() => onDelete(item.id)} className="button button-danger small">{t('common.delete')}</button>
                   </td>
                 </tr>
               ))}

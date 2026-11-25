@@ -5,6 +5,7 @@ import prisma from "../utils/prismaClient.js";
 import { validatePassword } from "../utils/password.js";
 import { listNonAdminUsers } from "../utils/dbUsers.js";
 import { formatUser, formatUserWithCreatedAt } from "../utils/serializers.js";
+import { resolveAvatarUrlAsync } from "../utils/avatarUrl.js";
 import storage from "../storage/index.js";
 import {
   REFRESH_TOKEN_EXPIRED,
@@ -17,23 +18,11 @@ import {
 
 const normalizeEmail = (email) => email.trim().toLowerCase();
 
-const resolveAvatarUrl = (avatarUrl) => {
-  if (!avatarUrl) return null;
-
-  const normalized = avatarUrl.startsWith("/uploads/")
-    ? avatarUrl.replace(/^\/uploads\//, "")
-    : avatarUrl;
-
-  if (avatarUrl.startsWith("http")) {
-    return avatarUrl;
-  }
-
-  return storage.resolveUrl(normalized);
-};
-
-const formatUserResponse = (user) => ({
-  ...formatUser(user),
-  avatar_url: resolveAvatarUrl(user.avatarUrl),
+const formatUserResponse = async (user) => ({
+  ...formatUser(user, {
+    avatarUrl: await resolveAvatarUrlAsync(user.avatarUrl),
+  }),
+  created_at: user.createdAt ?? null,
 });
 
 const removeFileFromStorageOrLocal = async (fileUrl) => {
@@ -142,7 +131,7 @@ export const signup = async (req, res) => {
       message: "User created successfully",
       token,
       refreshToken,
-      user: formatUserResponse(user),
+      user: await formatUserResponse(user),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -183,7 +172,7 @@ export const login = async (req, res) => {
       message: "Login successful",
       token,
       refreshToken,
-      user: formatUserResponse(user),
+      user: await formatUserResponse(user),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -200,7 +189,7 @@ export const getMe = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json({ user: formatUserResponse(user) });
+    res.json({ user: await formatUserResponse(user) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -208,10 +197,12 @@ export const getMe = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, avatarUrl } = req.body;
+    const { name, avatarUrl, removeAvatar } = req.body;
     const avatarFile = req.file;
+    const shouldRemoveAvatar =
+      removeAvatar === true || removeAvatar === "true" || removeAvatar === "1";
 
-    if (!name && !avatarUrl && !avatarFile) {
+    if (!name && !avatarUrl && !avatarFile && !shouldRemoveAvatar) {
       return res.status(400).json({ error: "No profile information provided" });
     }
 
@@ -232,6 +223,9 @@ export const updateProfile = async (req, res) => {
     if (avatarFile) {
       await removeFileFromStorageOrLocal(currentUser.avatarUrl);
       data.avatarUrl = await storage.upload(avatarFile, "avatars");
+    } else if (shouldRemoveAvatar) {
+      await removeFileFromStorageOrLocal(currentUser.avatarUrl);
+      data.avatarUrl = null;
     } else if (avatarUrl) {
       data.avatarUrl = avatarUrl;
     }
@@ -243,7 +237,7 @@ export const updateProfile = async (req, res) => {
 
     res.json({
       message: "Profile updated successfully",
-      user: formatUserResponse(user),
+      user: await formatUserResponse(user),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -515,7 +509,9 @@ export const updateStudentPlan = async (req, res) => {
       message: normalizedPlan
         ? `Plan ${normalizedPlan} asignado correctamente`
         : "Plan removido correctamente",
-      student: formatUserWithCreatedAt(student),
+      student: formatUserWithCreatedAt(student, {
+        avatarUrl: await resolveAvatarUrlAsync(student.avatarUrl),
+      }),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

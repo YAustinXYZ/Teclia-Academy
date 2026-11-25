@@ -59,7 +59,17 @@ export const createContent = z.object({
   type: contentType,
   plan_tier: contentPlanTier.optional(),
   ...bodyOrDescription.shape,
+  url: z.string().min(1).max(2048).optional(),
   tags: z.array(optionalTag).optional(),
+});
+
+export const createContentUploadUrl = z.object({
+  filename: z.string().min(1).max(255),
+  contentType: z.string().min(1).max(255).refine(
+    (value) => /^(video|audio|image)\//i.test(value) || value === 'application/pdf' || value === 'application/octet-stream',
+    { message: 'Only video, audio, image, and PDF uploads are allowed' }
+  ),
+  uploadId: z.string().uuid().optional(),
 });
 
 export const updateContent = z

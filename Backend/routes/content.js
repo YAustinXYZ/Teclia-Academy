@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { getContent, getContentById, uploadContent, updateContent, deleteContent, getFreeContent } from '../controllers/contentController.js';
+import { getContent, getContentById, uploadContent, createContentUploadUrl, updateContent, deleteContent, getFreeContent } from '../controllers/contentController.js';
 import { verifyToken, optionalAuth, adminOnly } from '../middleware/auth.js';
 import validate from '../middleware/validate.js';
 import * as contentSchemas from '../schemas/content.schema.js';
@@ -20,6 +20,14 @@ const mapBodyToDescription = (req, _res, next) => {
 router.get('/', optionalAuth, validate(contentSchemas.listContent, { target: 'query' }), getContent);
 router.get('/free', verifyToken, getFreeContent);
 router.get('/:id', optionalAuth, validate(contentSchemas.contentId, { target: 'params' }), getContentById);
+
+router.post(
+  '/upload-url',
+  verifyToken,
+  adminOnly,
+  validate(contentSchemas.createContentUploadUrl),
+  createContentUploadUrl
+);
 
 // Admin-only upload endpoint (supports file upload via 'file')
 router.post(

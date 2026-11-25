@@ -152,11 +152,21 @@ export const uploadContent = async (req, res) => {
 
     const content = formatContent(created);
 
-    if (storagePath) {
-      content.url = storage.resolveUrl(storagePath);
+    if (finalUrl && !/^https?:\/\//i.test(finalUrl)) {
+      content.url = storage.resolveUrl(finalUrl);
     }
 
     res.json({ message: 'Content uploaded', content });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const createContentUploadUrl = async (req, res) => {
+  try {
+    const { filename, contentType, uploadId } = req.body;
+    const upload = await storage.createResumableUploadUrl(filename, contentType, uploadId);
+    res.json(upload);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

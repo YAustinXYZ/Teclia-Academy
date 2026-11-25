@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -17,7 +18,23 @@ const getSupabaseConfig = () => {
     throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY (or SUPABASE_SERVICE_ROLE_KEY) must be defined');
   }
 
-  return { url, serviceKey, bucket };
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error('SUPABASE_URL must be the full project URL, such as https://your-project.supabase.co');
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol) || !parsedUrl.hostname) {
+    throw new Error('SUPABASE_URL must be a valid HTTP or HTTPS project URL');
+  }
+
+  return {
+    url: parsedUrl.origin,
+    serviceKey,
+    bucket,
+    anonKey: cleanEnvValue(process.env.SUPABASE_ANON_KEY) || cleanEnvValue(process.env.SUPABASE_PUBLISHABLE_KEY),
+  };
 };
 
 const getClient = () => {
@@ -70,6 +87,37 @@ const supabaseProvider = {
     }
 
     return storagePath;
+  },
+
+  async createResumableUploadUrl(filename, contentType, uploadId = randomUUID()) {
+    const { url, bucket, anonKey } = getSupabaseConfig();
+    if (!anonKey) {
+      throw new Error('SUPABASE_ANON_KEY (or SUPABASE_PUBLISHABLE_KEY) must be defined for large uploads');
+    }
+
+    const extension = path.extname(path.basename(filename || '')).toLowerCase();
+    const storagePath = `content/${uploadId}${extension}`;
+    const { data, error } = await getClient().storage
+      .from(bucket)
+      .createSignedUploadUrl(storagePath, { upsert: true });
+
+    if (error) {
+      throw new Error(`Supabase could not create the upload authorization: ${error.message}`);
+    }
+
+    const parsedUrl = new URL(url);
+    const directStorageHost = parsedUrl.hostname.match(/^([^.]+)\.supabase\.co$/);
+    if (directStorageHost) {
+      parsedUrl.hostname = `${directStorageHost[1]}.storage.supabase.co`;
+    }
+
+    return {
+      bucket,
+      path: storagePath,
+      signature: data.token,
+      endpoint: `${parsedUrl.origin}/storage/v1/upload/resumable/sign`,
+      apiKey: anonKey,
+    };
   },
 
   /**

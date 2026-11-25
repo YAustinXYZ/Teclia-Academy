@@ -4,6 +4,62 @@ import { useContent } from '../../context/ContentContext.jsx';
 import { contentPlanOptions } from '../../utils/plans.js';
 import { usePreferences } from '../../context/PreferencesContext.jsx';
 import { UIIcon } from '../common/Icons.jsx';
+import * as tus from 'tus-js-client';
+
+const RESUMABLE_UPLOAD_THRESHOLD = 4 * 1024 * 1024;
+
+const getUploadSession = (file) => {
+  const key = `teclia-content-upload:${file.name}:${file.size}:${file.lastModified}`;
+  let uploadId = sessionStorage.getItem(key);
+  if (!uploadId) {
+    uploadId = crypto.randomUUID();
+    sessionStorage.setItem(key, uploadId);
+  }
+  return { key, uploadId };
+};
+
+const uploadResumable = async (file, uploadId, onProgress) => {
+  const { data: signedUpload } = await api.post('/content/upload-url', {
+    filename: file.name,
+    contentType: file.type || 'application/octet-stream',
+    uploadId,
+  });
+
+  return new Promise((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: signedUpload.endpoint,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        apikey: signedUpload.apiKey,
+        'x-signature': signedUpload.signature,
+        'x-upsert': 'true',
+      },
+      metadata: {
+        bucketName: signedUpload.bucket,
+        objectName: signedUpload.path,
+        contentType: file.type || 'application/octet-stream',
+        cacheControl: '3600',
+      },
+      chunkSize: 6 * 1024 * 1024,
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      onError: reject,
+      onProgress: (uploaded, total) => {
+        onProgress(Math.round((uploaded / total) * 100));
+      },
+      onSuccess: () => resolve(signedUpload.path),
+    });
+
+    upload.findPreviousUploads()
+      .then((previousUploads) => {
+        if (previousUploads.length > 0) {
+          upload.resumeFromPreviousUpload(previousUploads[0]);
+        }
+        upload.start();
+      })
+      .catch(reject);
+  });
+};
 
 export const UploadForm = () => {
   const { t } = usePreferences();
@@ -47,28 +103,45 @@ export const UploadForm = () => {
     setLoading(true);
     setProgress(0);
 
+    let uploadSessionKey = null;
     try {
-      const form = new FormData();
-      form.append('title', title);
-      form.append('description', description);
-      form.append('type', type);
-      if (url) form.append('url', url);
-      if (file) form.append('file', file);
-      form.append('plan_tier', planTier);
-      form.append('is_free', planTier === 'free' ? '1' : '0');
+      let res;
+      if (file && import.meta.env.PROD && file.size > RESUMABLE_UPLOAD_THRESHOLD) {
+        const uploadSession = getUploadSession(file);
+        uploadSessionKey = uploadSession.key;
+        const storagePath = await uploadResumable(file, uploadSession.uploadId, setProgress);
+        res = await api.post('/content/upload', {
+          title,
+          description,
+          type,
+          url: storagePath,
+          plan_tier: planTier,
+          is_free: planTier === 'free' ? '1' : '0',
+        });
+      } else {
+        const form = new FormData();
+        form.append('title', title);
+        form.append('description', description);
+        form.append('type', type);
+        if (url) form.append('url', url);
+        if (file) form.append('file', file);
+        form.append('plan_tier', planTier);
+        form.append('is_free', planTier === 'free' ? '1' : '0');
 
-      const res = await api.post('/content/upload', form, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (evt) => {
-          if (evt.total) {
-            setProgress(Math.round((evt.loaded / evt.total) * 100));
-          }
-        },
-      });
+        res = await api.post('/content/upload', form, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (evt) => {
+            if (evt.total) {
+              setProgress(Math.round((evt.loaded / evt.total) * 100));
+            }
+          },
+        });
+      }
 
       addContent(res.data.content);
+      if (uploadSessionKey) sessionStorage.removeItem(uploadSessionKey);
       setSuccess(true);
       setTitle('');
       setDescription('');
@@ -80,7 +153,7 @@ export const UploadForm = () => {
 
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error uploading content');
+      setError(err.response?.data?.error || err.message || 'Error uploading content');
     } finally {
       setLoading(false);
     }
